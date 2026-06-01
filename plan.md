@@ -1,6 +1,6 @@
-# ILAS2026 Group Development Plan
+# ILAS2026グループ開発プラン
 
-## Goals
+## 目標
 
 - Define the project scope.
 - Decide roles and responsibilities.
