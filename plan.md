@@ -1,59 +1,93 @@
-# ILAS2026 Browser Game Development Plan
+# 弾幕縦スクロールゲーム 開発計画
 
-## Concept
+## 1. ゲーム概要
 
-Lantern Dash is a compact browser arcade game for this repository. The player guides a glowing study lantern through a night-school courtyard, collecting knowledge stars while avoiding drifting blockers.
+縦スクロール型の弾幕シューティングゲームを作る。プレイヤーは画面下側からスタートし、ステージは常に上方向へ進んでいるように見せる。プレイヤーは前方、つまり上方向にしか攻撃できない。
 
-## Goals
+実装名は **Vertical Bullet Garden** とする。
 
-- Run entirely in the browser with no build step.
-- Use keyboard, mouse, and touch-friendly controls.
-- Include a generated visual asset in the project, not only in local tool output.
-- Keep the code small enough for a group project to read and extend.
-- Record implementation notes under `.logs/`.
-- Preserve the repository's original group-planning purpose while adding a playable development target.
+## 2. MVP仕様
 
-## Development Environment
+- 画面は縦長 Canvas。
+- プレイヤーは矢印キーで上下左右に移動する。
+- `Shift` で低速移動する。
+- `Z` で上方向にショットを撃つ。
+- 背景は下方向へループスクロールする。
+- 敵は画面上部から出現する。
+- 敵弾は直線弾、自機狙い弾、円形弾、扇状弾を使う。
+- プレイヤー弾が敵やボスに当たるとダメージを与える。
+- 敵弾がプレイヤー中心の小さな当たり判定に当たるとHPが減る。
+- HPが0になるとゲームオーバー。
+- 一定時間後にボスへ移行し、ボス撃破でゲームクリア。
 
-- `node tools/dev-server.mjs`: start a dependency-free local server.
-- `node tools/smoke-test.mjs`: run a dependency-free smoke test.
-- `npm run dev` and `npm test`: optional shortcuts when npm is available locally.
-- Codex in-app Browser / Playwright-style browser checks are used for visual verification.
+## 3. 操作方法
 
-## OpenAI Docs Decision
+| キー | 動作 |
+| --- | --- |
+| ↑ ↓ ← → | 移動 |
+| Z | 上方向ショット |
+| Shift | 低速移動 / 当たり判定表示 |
+| Enter | スタート |
+| Esc | ポーズ |
 
-OpenAI's API authentication documentation states that API keys are secrets and should not be exposed in client-side code such as browsers or apps. This game is currently static and does not need an AI service, so it intentionally does not embed an OpenAI API key in browser code.
+## 4. ゲーム状態
+
+- `title`
+- `playing`
+- `boss`
+- `game_clear`
+- `game_over`
+- `pause`
+
+状態ごとに入力、更新、描画の扱いを分ける。
+
+## 5. データ構造
+
+- `player`: x, y, speed, slowSpeed, hp, invuln, shotCooldown
+- `playerBullets`: x, y, vx, vy, radius, damage
+- `enemyBullets`: x, y, vx, vy, radius, color
+- `enemies`: x, y, vx, vy, hp, radius, score, shootTimer, type
+- `boss`: x, y, hp, maxHp, phase, attackTimer, radius
+- `game`: mode, score, time, player, bullets, enemies, boss, background, particles
+
+## 6. 実装済み
+
+- 縦長ゲーム画面。
+- キーボード操作。
+- `Z` キーの上方向ショット。
+- `Shift` 低速移動。
+- 低速移動中の小さな当たり判定表示。
+- 縦スクロール背景。
+- 敵A、敵B、敵Cの簡易実装。
+- プレイヤー弾と敵の当たり判定。
+- 敵弾とプレイヤーの当たり判定。
+- HP、スコア、ステージ状態表示。
+- 一定時間後のボス戦。
+- ボスHPバー。
+- ボス撃破によるゲームクリア。
+- HP0によるゲームオーバー。
+- Escポーズ。
+
+## 7. 開発環境
+
+- `node tools/dev-server.mjs`: 依存なしのローカルサーバー。
+- `node tools/smoke-test.mjs`: 依存なしのスモークテスト。
+- `npm run dev` / `npm test`: npm が使える環境向けのショートカット。
+- Codex in-app Browser / Playwright-style browser checks で表示確認する。
+
+## 8. OpenAI Docs Decision
+
+OpenAI APIキーはブラウザ側コードに置かない。OpenAI公式の Authentication docs は、APIキーをブラウザやアプリのクライアント側コードに露出しないよう案内している。AI要素を追加する場合は、サーバー側の環境変数からAPIキーを読み込む。
 
 Reference: https://developers.openai.com/api/reference/overview#authentication
 
-## Gameplay
+## 9. 次に追加したい要素
 
-- Move the lantern with arrow keys, WASD, pointer drag, or touch drag.
-- Collect stars to gain points and extend the timer.
-- Avoid dark blockers that reduce time.
-- The game ends when the timer reaches zero.
-- Restart from the game-over overlay.
-
-## Files
-
-- `index.html`: page structure and game UI.
-- `styles.css`: responsive layout, overlays, and visual treatment.
-- `script.js`: Canvas loop, input, collisions, scoring, and reset flow.
-- `assets/courtyard-bg.png`: generated game background asset.
-- `tools/dev-server.mjs`: local static server.
-- `tools/smoke-test.mjs`: local smoke test.
-- `.logs/`: implementation and environment logs.
-
-## Initial Group Tasks
-
-- Confirm project requirements.
-- Choose future extensions for the browser game.
-- Create the first working prototype.
-- Review progress regularly as a group.
-
-## Next Ideas
-
-- Add levels with changing obstacle patterns.
-- Add a leaderboard stored in `localStorage`.
-- Add sound effects and mute controls.
-- Replace vector game pieces with a small sprite sheet.
+- パワーアップアイテム。
+- ボム。
+- ステージ2以降。
+- BGMと効果音。
+- 弾消し演出。
+- スコアランキング。
+- 難易度選択。
+- スマホ対応。

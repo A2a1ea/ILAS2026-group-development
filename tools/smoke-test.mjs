@@ -11,10 +11,13 @@ try {
   const js = await (await fetch(`http://127.0.0.1:${port}/script.js`)).text();
   const css = await (await fetch(`http://127.0.0.1:${port}/styles.css`)).text();
   const asset = await fetch(`http://127.0.0.1:${port}/assets/courtyard-bg.png`);
-
   assert(html.includes("<canvas"), "index.html should include the game canvas");
+  assert(html.includes("Vertical Bullet Garden"), "index.html should include the bullet shooter title");
   assert(html.includes("script.js"), "index.html should load script.js");
   assert(js.includes("function startGame"), "script.js should include startGame");
+  assert(js.includes("function updateBoss"), "script.js should include boss logic");
+  assert(js.includes("keys.has(\"z\")"), "script.js should include Z-key shooting");
+  assert(js.includes("keys.has(\"shift\")"), "script.js should include focus movement");
   assert(css.includes(".stage-wrap"), "styles.css should include the game stage styles");
   assert(asset.ok, "background image should be served");
 
