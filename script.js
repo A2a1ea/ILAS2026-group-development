@@ -57,6 +57,7 @@ function startGame() {
   running = true;
   lastFrame = performance.now();
   overlay.hidden = true;
+  canvas.focus();
   requestAnimationFrame(loop);
 }
 
