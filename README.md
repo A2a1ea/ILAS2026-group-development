@@ -24,8 +24,8 @@ npm test
 ## Development Notes
 
 - The game runs from `index.html`, `styles.css`, and `script.js`.
-- Arrow keys move, Shift slows movement, Z fires upward, Enter starts, and Esc pauses.
-- The first MVP includes scrolling background, enemies, enemy bullets, HP, boss fight, game clear, and game over.
+- WASD moves, Shift slows movement, J fires upward, K discards the newest collected letter as a letter bullet, Enter starts, and Esc pauses.
+- The current MVP includes endless stages, scrolling background, enemies, enemy bullets, HP, recurring boss fights, dropped letters collected by player bullets, order-independent fast/slow/life word effects, online stage rankings through the dev server, and game over.
 - The generated background asset is still stored at `assets/courtyard-bg.png`; the current game also draws a code-native scrolling starfield over the stage.
 - Work logs are stored under `.logs/`.
 - OpenAI API keys must not be placed in browser-side code. See `docs/OPENAI_SECURITY.md`.

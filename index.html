@@ -1,43 +1,63 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Vertical Bullet Garden</title>
-    <link rel="stylesheet" href="styles.css">
-  </head>
-  <body>
-    <main class="game-shell" aria-label="Vertical Bullet Garden browser game">
-      <section class="hud" aria-label="Game status">
-        <div>
-          <span class="label">Score</span>
-          <strong id="score">0</strong>
-        </div>
-        <div>
-          <span class="label">HP</span>
-          <strong id="hp">5</strong>
-        </div>
-        <div>
-          <span class="label">Stage</span>
-          <strong id="time">45</strong>
-        </div>
-        <div>
-          <span class="label">State</span>
-          <strong id="best">0</strong>
-        </div>
-      </section>
 
-      <section class="stage-wrap">
-        <canvas id="game" width="540" height="800" tabindex="0" aria-label="Vertical Bullet Garden play field"></canvas>
-        <div class="overlay" id="overlay">
-          <h1>Vertical Bullet Garden</h1>
-          <p>Move with arrows, hold Shift for focus movement, and press Z to fire upward.</p>
-          <button id="startButton" type="button">Start Game</button>
-          <p class="hint">Enter starts. Esc pauses. Defeat the boss or survive the stage.</p>
-        </div>
-      </section>
-    </main>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vertical Bullet Garden</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
 
-    <script src="script.js"></script>
-  </body>
+<body>
+  <main class="game-shell" aria-label="Vertical Bullet Garden browser game">
+    <section class="hud" aria-label="Game status">
+      <div>
+        <span class="label">Score</span>
+        <strong id="score">0</strong>
+      </div>
+      <div>
+        <span class="label">HP</span>
+        <strong id="hp">5</strong>
+      </div>
+      <div>
+        <span class="label">Stage</span>
+        <strong id="time">45</strong>
+      </div>
+      <div>
+        <span class="label">Cleared</span>
+        <strong id="best">0</strong>
+      </div>
+    </section>
+
+    <section class="stage-wrap">
+      <canvas id="game" width="540" height="800" tabindex="0" aria-label="Vertical Bullet Garden play field"></canvas>
+      <div class="overlay" id="overlay">
+        <h1>Vertical Bullet Garden</h1>
+        <p>Move with WASD, hold Shift for focus movement, press J to fire, and press K to discard the last letter.</p>
+        <button id="startButton" type="button">Start Game</button>
+        <p class="hint">Shoot falling letters to collect them. Spell fast, slow, or life in any order.</p>
+      </div>
+    </section>
+
+    <section class="status-panel" aria-label="Letters, effects, and rankings">
+      <div>
+        <span class="label">Letters</span>
+        <strong id="letterRack">collect letters</strong>
+      </div>
+      <div>
+        <span class="label">Effects</span>
+        <strong id="effects">no active effects</strong>
+      </div>
+      <div class="ranking">
+        <span class="label">Online Ranking</span>
+        <ol id="rankingList">
+          <li>No runs yet</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+
 </html>
