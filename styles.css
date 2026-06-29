@@ -32,7 +32,7 @@ body {
 }
 
 .game-shell {
-  width: min(100vw, 430px);
+  width: min(100vw, 960px);
   padding: clamp(12px, 2vw, 24px);
 }
 
@@ -67,6 +67,27 @@ body {
   line-height: 1;
 }
 
+.versus-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 540px) minmax(220px, 320px);
+  align-items: start;
+  gap: 12px;
+}
+
+.play-column,
+.rival-column {
+  display: grid;
+  gap: 8px;
+}
+
+.screen-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .stage-wrap {
   position: relative;
   overflow: hidden;
@@ -75,6 +96,43 @@ body {
   background: #071120;
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
   aspect-ratio: 27 / 40;
+}
+
+.rival-column {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 10px;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.26);
+}
+
+#rivalGame {
+  border: 1px solid rgba(174, 224, 255, 0.18);
+  border-radius: 8px;
+  background: #071120;
+  aspect-ratio: 27 / 40;
+}
+
+.rival-hud {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rival-hud > div {
+  border: 1px solid rgba(174, 224, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(7, 17, 32, 0.62);
+  padding: 8px;
+}
+
+.rival-hud strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--gold);
+  font-size: 0.92rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .status-panel {
@@ -161,9 +219,151 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
+.menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
 .hint {
   color: #d4edff;
   font-size: 0.92rem;
+}
+
+.word-board {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 23rem);
+  margin: 0 auto;
+}
+
+.word-slots {
+  display: block;
+  min-height: 2.5rem;
+  border: 1px solid rgba(121, 231, 255, 0.42);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(7, 17, 32, 0.72);
+  color: var(--gold);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.tile-board {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 0;
+  width: min(100%, 22rem);
+  aspect-ratio: 7 / 5;
+  margin: 0 auto;
+  padding: 0;
+  border: 3px solid rgba(52, 74, 71, 0.86);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(52, 74, 71, 0.86);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.28);
+}
+
+.tile-cell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid rgba(52, 74, 71, 0.76);
+  border-left: 1px solid rgba(52, 74, 71, 0.76);
+  border-radius: 0;
+  background: #f7d85b;
+  color: rgba(36, 22, 6, 0.42);
+  font-size: clamp(0.8rem, 3vw, 1.05rem);
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.26), inset -1px -1px 0 rgba(0, 0, 0, 0.16);
+}
+
+.tile-cell.zone-core {
+  background: #bfe872;
+}
+
+.tile-cell.zone-mid {
+  background: #f2df57;
+}
+
+.tile-cell.zone-edge {
+  background: #f28a60;
+}
+
+.tile-cell.playable {
+  color: rgba(36, 22, 6, 0.64);
+}
+
+.tile-cell.selected {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid #eef8ff;
+  outline-offset: -4px;
+  color: #071120;
+}
+
+.tile-cell.filled {
+  border-color: rgba(52, 42, 83, 0.84);
+  background: linear-gradient(135deg, #8e55c8, #6940a8);
+  color: #fff8d6;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+}
+
+.tile-cell.powered {
+  background: linear-gradient(135deg, #ff5f8f, #ffd45d);
+  color: #241606;
+}
+
+.tile-cell.scored {
+  box-shadow: 0 0 0 2px rgba(214, 255, 143, 0.7), 0 0 16px rgba(214, 255, 143, 0.28);
+}
+
+.letter-bank,
+.board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.letter-tile,
+.board-actions button {
+  min-width: 2.25rem;
+  padding: 8px 10px;
+}
+
+.letter-tile:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.letter-tile.powered {
+  background: linear-gradient(135deg, #ff5f8f, #ffd45d);
+  color: #241606;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 0 18px rgba(255, 95, 143, 0.38);
+}
+
+.letter-tile.active {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.board-note {
+  display: block;
+  color: #d4edff;
+  font-size: 0.84rem;
+  line-height: 1.3;
 }
 
 @media (max-width: 640px) {
@@ -173,6 +373,10 @@ button:focus-visible {
 
   .game-shell {
     padding: 10px;
+  }
+
+  .versus-layout {
+    grid-template-columns: 1fr;
   }
 
   .hud {

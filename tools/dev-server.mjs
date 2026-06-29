@@ -1,9 +1,13 @@
 import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
+import { randomUUID } from "node:crypto";
+import { WebSocketServer } from "ws";
 
 const root = resolve(".");
 const rankingFile = join(root, ".logs", "rankings.json");
+const unknownWordsFile = join(root, ".logs", "unknown-words.json");
+const wordsFile = join(root, "data", "words-ja.json");
 const port = readPort();
 
 const mimeTypes = {
@@ -20,6 +24,10 @@ const server = createServer((request, response) => {
   const url = new URL(request.url || "/", `http://${request.headers.host || "127.0.0.1"}`);
   if (url.pathname === "/api/rankings/stages") {
     handleRankings(request, response);
+    return;
+  }
+  if (url.pathname === "/api/words/validate") {
+    handleWordValidation(request, response, url);
     return;
   }
 
@@ -52,6 +60,173 @@ const server = createServer((request, response) => {
 server.listen(port, "127.0.0.1", () => {
   console.log(`Lantern Dash dev server: http://127.0.0.1:${port}/`);
 });
+
+const rooms = new Map();
+const sockets = new Map();
+const wss = new WebSocketServer({ server, path: "/ws/versus" });
+
+wss.on("connection", (socket) => {
+  const id = randomUUID();
+  sockets.set(socket, { id, clientId: id, roomId: null, name: `P${id.slice(0, 4)}`, alive: true });
+  sendSocket(socket, "hello", { id });
+
+  socket.on("pong", () => {
+    const meta = sockets.get(socket);
+    if (meta) meta.alive = true;
+  });
+
+  socket.on("message", (raw) => {
+    let message;
+    try {
+      message = JSON.parse(String(raw));
+    } catch {
+      sendSocket(socket, "error", { message: "Invalid JSON" });
+      return;
+    }
+    handleVersusMessage(socket, message);
+  });
+
+  socket.on("close", () => {
+    leaveVersusRoom(socket);
+    sockets.delete(socket);
+  });
+});
+
+setInterval(() => {
+  for (const socket of wss.clients) {
+    const meta = sockets.get(socket);
+    if (!meta) continue;
+    if (!meta.alive) {
+      leaveVersusRoom(socket);
+      sockets.delete(socket);
+      socket.terminate();
+      continue;
+    }
+    meta.alive = false;
+    socket.ping();
+  }
+}, 5000);
+
+function handleVersusMessage(socket, message) {
+  if (message.type === "join") {
+    joinVersusRoom(socket, message.roomId, message.name, message.clientId);
+    return;
+  }
+  if (message.type === "state") {
+    broadcastToRoom(socket, "peer-state", { state: message.state || {} });
+    return;
+  }
+  if (message.type === "word") {
+    broadcastToRoom(socket, "peer-word", { word: message.word || null });
+    return;
+  }
+  if (message.type === "finish") {
+    broadcastToRoom(socket, "peer-finish", {
+      result: message.result,
+      score: message.score,
+      stagesCleared: message.stagesCleared,
+    });
+  }
+}
+
+function joinVersusRoom(socket, requestedRoomId, requestedName, requestedClientId) {
+  leaveVersusRoom(socket);
+  const meta = sockets.get(socket);
+  if (!meta) return;
+  meta.roomId = sanitizeRoomId(requestedRoomId);
+  meta.name = String(requestedName || meta.name).slice(0, 18);
+  meta.clientId = sanitizeClientId(requestedClientId || meta.clientId);
+  if (!rooms.has(meta.roomId)) rooms.set(meta.roomId, new Set());
+  replaceDuplicateClient(socket, meta.roomId, meta.clientId);
+  rooms.get(meta.roomId).add(socket);
+  sendSocket(socket, "joined", {
+    roomId: meta.roomId,
+    playerId: meta.id,
+    peers: roomPeers(meta.roomId, socket),
+  });
+  broadcastRoster(meta.roomId, socket, "peer-joined", { id: meta.id, name: meta.name });
+}
+
+function leaveVersusRoom(socket) {
+  const meta = sockets.get(socket);
+  if (!meta?.roomId) return;
+  const room = rooms.get(meta.roomId);
+  if (room) {
+    room.delete(socket);
+    if (!room.size) rooms.delete(meta.roomId);
+  }
+  broadcastRoster(meta.roomId, socket, "peer-left", { id: meta.id, name: meta.name });
+  meta.roomId = null;
+}
+
+function broadcastToRoom(sender, type, payload) {
+  const meta = sockets.get(sender);
+  if (!meta?.roomId) return;
+  const room = rooms.get(meta.roomId);
+  if (!room) return;
+  for (const peer of room) {
+    if (peer === sender || peer.readyState !== 1) continue;
+    if (sockets.get(peer)?.clientId === meta.clientId) continue;
+    sendSocket(peer, type, { ...payload, from: meta.id, name: meta.name });
+  }
+}
+
+function replaceDuplicateClient(currentSocket, roomId, clientId) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  for (const peer of [...room]) {
+    if (peer === currentSocket) continue;
+    if (sockets.get(peer)?.clientId !== clientId) continue;
+    room.delete(peer);
+    const peerMeta = sockets.get(peer);
+    if (peerMeta) peerMeta.roomId = null;
+    peer.close(1000, "duplicate client replaced");
+  }
+}
+
+function broadcastRoster(roomId, sender, type, payload) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  const senderMeta = sockets.get(sender);
+  for (const peer of room) {
+    if (peer === sender || peer.readyState !== 1) continue;
+    if (sockets.get(peer)?.clientId === senderMeta?.clientId) continue;
+    sendSocket(peer, type, {
+      ...payload,
+      from: senderMeta?.id,
+      name: senderMeta?.name,
+      peers: roomPeers(roomId, peer),
+    });
+  }
+}
+
+function roomPeers(roomId, exceptSocket) {
+  const room = rooms.get(roomId);
+  if (!room) return [];
+  const exceptMeta = sockets.get(exceptSocket);
+  return [...room]
+    .filter((socket) => socket !== exceptSocket)
+    .filter((socket) => sockets.get(socket)?.clientId !== exceptMeta?.clientId)
+    .map((socket) => {
+      const meta = sockets.get(socket);
+      return { id: meta.id, name: meta.name };
+    });
+}
+
+function sendSocket(socket, type, payload) {
+  if (socket.readyState !== 1) return;
+  socket.send(JSON.stringify({ type, ...payload }));
+}
+
+function sanitizeRoomId(roomId) {
+  const cleaned = String(roomId || "default").replace(/[^\w-]/g, "").slice(0, 24);
+  return cleaned || "default";
+}
+
+function sanitizeClientId(clientId) {
+  const cleaned = String(clientId || "").replace(/[^\w-]/g, "").slice(0, 80);
+  return cleaned || randomUUID();
+}
 
 function readPort() {
   const index = process.argv.indexOf("--port");
@@ -124,6 +299,158 @@ function readRankings() {
 function writeRankings(rankings) {
   mkdirSync(join(root, ".logs"), { recursive: true });
   writeFileSync(rankingFile, `${JSON.stringify(rankings, null, 2)}\n`);
+}
+
+function logUnknownWord(word) {
+  const now = new Date().toISOString();
+  const words = readUnknownWords();
+  const current = words.find((entry) => entry.word === word);
+  if (current) {
+    current.count += 1;
+    current.lastSeen = now;
+  } else {
+    words.push({ word, count: 1, firstSeen: now, lastSeen: now });
+  }
+  words.sort((a, b) => b.count - a.count || a.word.localeCompare(b.word, "ja"));
+  mkdirSync(join(root, ".logs"), { recursive: true });
+  writeFileSync(unknownWordsFile, `${JSON.stringify(words.slice(0, 300), null, 2)}\n`);
+}
+
+function readUnknownWords() {
+  try {
+    const words = JSON.parse(readFileSync(unknownWordsFile, "utf8"));
+    return Array.isArray(words) ? words.filter((entry) => entry && typeof entry.word === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+async function handleWordValidation(request, response, url) {
+  if (request.method !== "GET") {
+    response.writeHead(405, { Allow: "GET" });
+    response.end("Method not allowed");
+    return;
+  }
+
+  const word = normalizeKana(url.searchParams.get("word") || "").slice(0, 12);
+  if (!word) {
+    sendJson(response, { valid: false, word: "", source: "local" });
+    return;
+  }
+
+  let entry = readWordMap().get(word);
+  if (!entry) {
+    try {
+      entry = await fetchExternalWordEntry(word);
+      if (entry) {
+        addWordEntry(entry);
+      }
+    } catch {
+      entry = null;
+    }
+    if (!entry) {
+      logUnknownWord(word);
+      sendJson(response, { valid: false, word, source: "local" });
+      return;
+    }
+  }
+
+  const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
+  sendJson(response, {
+    valid: true,
+    word,
+    source: entry.source || "local",
+    upgrade: {
+      valid: true,
+      word,
+      type: entry.type,
+      label: entry.label,
+      power,
+      title: `${word} ${entry.label}`,
+      description: describeUpgrade(entry.type, power),
+    },
+  });
+}
+
+function readWordMap() {
+  try {
+    const data = JSON.parse(readFileSync(wordsFile, "utf8"));
+    return new Map((data.words || []).map((entry) => [normalizeKana(entry.word), entry]));
+  } catch {
+    return new Map();
+  }
+}
+
+async function fetchExternalWordEntry(word) {
+  const url = new URL("https://ja.wiktionary.org/w/api.php");
+  url.searchParams.set("action", "query");
+  url.searchParams.set("format", "json");
+  url.searchParams.set("formatversion", "2");
+  url.searchParams.set("redirects", "1");
+  url.searchParams.set("titles", word);
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "ILAS2026WordGame/0.1 (local development word validation)",
+    },
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  const page = data?.query?.pages?.[0];
+  if (!page || page.missing) return null;
+  return {
+    word,
+    ...inferWordEntry(word),
+    source: "wiktionary",
+  };
+}
+
+function addWordEntry(entry) {
+  const data = readWordData();
+  const word = normalizeKana(entry.word);
+  if ((data.words || []).some((item) => normalizeKana(item.word) === word)) return;
+  data.words = [...(data.words || []), {
+    word,
+    type: entry.type,
+    label: entry.label,
+    source: entry.source || "local",
+  }].sort((a, b) => normalizeKana(a.word).localeCompare(normalizeKana(b.word), "ja"));
+  mkdirSync(join(root, "data"), { recursive: true });
+  writeFileSync(wordsFile, `${JSON.stringify(data, null, 2)}\n`);
+}
+
+function readWordData() {
+  try {
+    const data = JSON.parse(readFileSync(wordsFile, "utf8"));
+    return { words: Array.isArray(data.words) ? data.words : [] };
+  } catch {
+    return { words: [] };
+  }
+}
+
+function inferWordEntry(word) {
+  if (word.length <= 2) return { type: "mobility", label: "移動" };
+  if (/[火炎鬼刀刃雷焼肉]/.test(word)) return { type: "attack", label: "攻撃" };
+  if (/[守盾石城亀]/.test(word)) return { type: "defense", label: "守り" };
+  if (/[雪雨月夜雲煙]/.test(word)) return { type: "control", label: "制御" };
+  if (/[花心命光薬食卵]/.test(word)) return { type: "life", label: "生命" };
+  return { type: "pattern", label: "弾幕" };
+}
+
+function normalizeKana(word) {
+  return String(word).trim().toLowerCase().replace(/[ァ-ン]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60));
+}
+
+function rareLetterBonus(word) {
+  return [...word].filter((char) => "ゃゅょっん".includes(char)).length;
+}
+
+function describeUpgrade(type, power) {
+  if (type === "attack") return `弾の威力 +${power}`;
+  if (type === "mobility") return "移動速度アップ。";
+  if (type === "defense") return "HP回復と短い無敵。";
+  if (type === "control") return "敵弾スローを付与。";
+  if (type === "life") return "最大HPアップと回復。";
+  return "拡散ショットを追加。";
 }
 
 function rankEntries(entries) {

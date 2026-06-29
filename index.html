@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 
 <head>
   <meta charset="utf-8">
@@ -20,23 +20,53 @@
         <strong id="hp">5</strong>
       </div>
       <div>
-        <span class="label">Stage</span>
+        <span class="label">Phase</span>
         <strong id="time">45</strong>
       </div>
       <div>
-        <span class="label">Cleared</span>
+        <span class="label">Flow</span>
         <strong id="best">0</strong>
       </div>
     </section>
 
-    <section class="stage-wrap">
+    <section class="versus-layout">
+      <div class="play-column">
+        <span class="screen-label">You</span>
+        <section class="stage-wrap">
       <canvas id="game" width="540" height="800" tabindex="0" aria-label="Vertical Bullet Garden play field"></canvas>
       <div class="overlay" id="overlay">
         <h1>Vertical Bullet Garden</h1>
-        <p>Move with WASD, hold Shift for focus movement, press J to fire, and press K to discard the last letter.</p>
-        <button id="startButton" type="button">Start Game</button>
-        <p class="hint">Shoot falling letters to collect them. Spell fast, slow, or life in any order.</p>
+        <p>ひらがなを1文字ずつ置いてことばを作り、強化して最終バトルへ進みます。</p>
+        <div class="menu-actions" aria-label="Mode selection">
+          <button id="startButton" type="button">ループモード</button>
+          <button id="versusButton" type="button">対戦</button>
+        </div>
+        <p class="hint">Move with WASD, hold Shift for focus movement, press J to fire, and press K to discard the last letter.</p>
       </div>
+        </section>
+      </div>
+      <aside class="rival-column" aria-label="Opponent screen">
+        <span class="screen-label">Rival</span>
+        <canvas id="rivalGame" width="540" height="800" aria-label="Opponent play field"></canvas>
+        <div class="rival-hud">
+          <div>
+            <span class="label">Name</span>
+            <strong id="rivalName">Waiting</strong>
+          </div>
+          <div>
+            <span class="label">HP</span>
+            <strong id="rivalHp">-</strong>
+          </div>
+          <div>
+            <span class="label">Score</span>
+            <strong id="rivalScore">0</strong>
+          </div>
+          <div>
+            <span class="label">Phase</span>
+            <strong id="rivalPhase">-</strong>
+          </div>
+        </div>
+      </aside>
     </section>
 
     <section class="status-panel" aria-label="Letters, effects, and rankings">

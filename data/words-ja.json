@@ -1,0 +1,295 @@
+{
+  "words": [
+    {
+      "word": "あい",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "あお",
+      "type": "control",
+      "label": "制御"
+    },
+    {
+      "word": "あか",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "あき",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "あさ",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "あし",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "あめ",
+      "type": "control",
+      "label": "制御"
+    },
+    {
+      "word": "いえ",
+      "type": "defense",
+      "label": "守り"
+    },
+    {
+      "word": "いし",
+      "type": "defense",
+      "label": "守り"
+    },
+    {
+      "word": "いぬ",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "いのち",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "うた",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "うどん",
+      "type": "control",
+      "label": "制御"
+    },
+    {
+      "word": "うみ",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "えき",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "おと",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "おに",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "おにく",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "かさ",
+      "type": "defense",
+      "label": "守り"
+    },
+    {
+      "word": "かぜ",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "かに",
+      "type": "defense",
+      "label": "守り"
+    },
+    {
+      "word": "かみなり",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "かめ",
+      "type": "defense",
+      "label": "守り"
+    },
+    {
+      "word": "かれー",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "くさ",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "くも",
+      "type": "control",
+      "label": "制御"
+    },
+    {
+      "word": "ごはん",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "さかな",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "さくら",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "さる",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "しお",
+      "type": "control",
+      "label": "制御"
+    },
+    {
+      "word": "すし",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "そば",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "そら",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "たこ",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "たまご",
+      "type": "pattern",
+      "label": "弾幕",
+      "source": "wiktionary"
+    },
+    {
+      "word": "つき",
+      "type": "control",
+      "label": "制御"
+    },
+    {
+      "word": "つばさ",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "てき",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "とり",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "なみ",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "にく",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "にじ",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "ねこ",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "はな",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "はやて",
+      "type": "mobility",
+      "label": "移動"
+    },
+    {
+      "word": "ぱん",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "ひかり",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "ほし",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "ほのお",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "まもり",
+      "type": "defense",
+      "label": "守り"
+    },
+    {
+      "word": "みず",
+      "type": "pattern",
+      "label": "弾幕"
+    },
+    {
+      "word": "やいば",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "やき",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "やきにく",
+      "type": "attack",
+      "label": "攻撃"
+    },
+    {
+      "word": "やさい",
+      "type": "life",
+      "label": "生命"
+    },
+    {
+      "word": "ゆき",
+      "type": "control",
+      "label": "制御"
+    },
+    {
+      "word": "らーめん",
+      "type": "attack",
+      "label": "攻撃"
+    }
+  ]
+}
