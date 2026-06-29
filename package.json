@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node tools/dev-server.mjs",
     "dev:5173": "node tools/dev-server.mjs --port 5173",
+    "dev:local": "node tools/dev-server.mjs --host 127.0.0.1 --port 5173",
     "test": "node tools/smoke-test.mjs"
   },
   "dependencies": {

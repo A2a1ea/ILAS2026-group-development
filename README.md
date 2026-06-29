@@ -21,6 +21,8 @@ npm run dev
 npm test
 ```
 
+The dev server listens on the local network by default. Use the printed `Network URL` such as `http://192.168.x.x:5173/` from another computer on the same Wi-Fi. Use `npm run dev:local` when you only want this computer to access it.
+
 ## Development Notes
 
 - The game runs from `index.html`, `styles.css`, and `script.js`.

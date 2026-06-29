@@ -1,5 +1,6 @@
 import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { networkInterfaces } from "node:os";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import { WebSocketServer } from "ws";
@@ -9,6 +10,7 @@ const rankingFile = join(root, ".logs", "rankings.json");
 const unknownWordsFile = join(root, ".logs", "unknown-words.json");
 const wordsFile = join(root, "data", "words-ja.json");
 const port = readPort();
+const host = readHost();
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -57,8 +59,9 @@ const server = createServer((request, response) => {
   createReadStream(target).pipe(response);
 });
 
-server.listen(port, "127.0.0.1", () => {
+server.listen(port, host, () => {
   console.log(`Lantern Dash dev server: http://127.0.0.1:${port}/`);
+  for (const url of networkUrls(port)) console.log(`Network URL: ${url}`);
 });
 
 const rooms = new Map();
@@ -232,6 +235,19 @@ function readPort() {
   const index = process.argv.indexOf("--port");
   const value = index >= 0 ? Number(process.argv[index + 1]) : Number(process.env.PORT || 5173);
   return Number.isInteger(value) && value > 0 ? value : 5173;
+}
+
+function readHost() {
+  const index = process.argv.indexOf("--host");
+  return index >= 0 ? String(process.argv[index + 1] || "0.0.0.0") : String(process.env.HOST || "0.0.0.0");
+}
+
+function networkUrls(targetPort) {
+  if (host === "127.0.0.1" || host === "localhost") return [];
+  return Object.values(networkInterfaces())
+    .flat()
+    .filter((item) => item && item.family === "IPv4" && !item.internal)
+    .map((item) => `http://${item.address}:${targetPort}/`);
 }
 
 function resolvePath(pathname) {
