@@ -380,21 +380,24 @@ async function handleWordValidation(request, response, url) {
     }
   }
 
+  const recognized = entry.recognized || [word];
+  const element = inferElement(word, recognized);
   const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
   sendJson(response, {
     valid: true,
     word,
     source: entry.source || "local",
-    recognized: entry.recognized || [word],
+    recognized,
     upgrade: {
       valid: true,
       word,
       type: entry.type,
       label: entry.label,
       power,
+      element,
       title: `${word} ${entry.label}`,
-      description: describeUpgrade(entry.type, power),
-      recognized: entry.recognized || [word],
+      description: `${describeUpgrade(entry.type, power)} / ${element} unlocked`,
+      recognized,
     },
   });
 }
@@ -534,6 +537,16 @@ function inferWordEntry(word) {
   if (/[雪雨月夜雲煙]/.test(word)) return { type: "control", label: "制御" };
   if (/[花心命光薬食卵]/.test(word)) return { type: "life", label: "生命" };
   return { type: "pattern", label: "弾幕" };
+}
+
+function inferElement(word, recognized = []) {
+  const combined = [word, ...recognized].join("");
+  if (/(ほのお|ひ|やき|焼|あつ|たいよう|火)/.test(combined)) return "fire";
+  if (/(みず|あめ|うみ|なみ|しお|水|雨|海)/.test(combined)) return "water";
+  if (/(かぜ|そら|はね|とり|風|空|羽|鳥)/.test(combined)) return "wind";
+  if (/(つち|いし|やま|もり|土|石|山|森)/.test(combined)) return "earth";
+  if (/(ひかり|ほし|つき|光|星|月)/.test(combined)) return "light";
+  return "neutral";
 }
 
 function normalizeKana(word) {

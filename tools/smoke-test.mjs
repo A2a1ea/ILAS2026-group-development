@@ -61,6 +61,11 @@ try {
   assert(js.includes("function collectLetter"), "script.js should include bullet-based letter collection");
   assert(js.includes("function fireStoredLetter"), "script.js should include K-key letter discard shots");
   assert(js.includes("function formatRecognizedWord"), "script.js should show dictionary recognition details");
+  assert(js.includes("ELEMENT_BEATS"), "script.js should define elemental advantage rules");
+  assert(js.includes("switchElementByNumber"), "script.js should switch shot elements with number keys");
+  assert(js.includes("elementBeats"), "script.js should compare bullet elements");
+  assert(js.includes("bossElementForPhase"), "script.js should rotate boss elements");
+  assert(js.includes("weak to"), "script.js should show boss weakness messaging");
   assert(js.includes("function forgeSelectedWord"), "script.js should include word-board forging");
   assert(js.includes("function getBoardWords"), "script.js should extract board words from the filled grid");
   assert(js.includes("function scoreMoveAt"), "script.js should score words immediately after each placed tile");
@@ -76,6 +81,7 @@ try {
   assert(devServerJs.includes("isDictionaryWord"), "dev server should accept multi-token dictionary words");
   assert(devServerJs.includes("isMeaningfulDictionaryToken"), "dev server should reject meaningless dictionary fragments");
   assert(devServerJs.includes("conversionForms"), "dev server should include representative conversion forms for readings");
+  assert(devServerJs.includes("inferElement"), "dev server should infer elements from dictionary words");
   assert(devServerJs.includes('source: "kuromoji"'), "dev server should report dictionary-sourced words");
   assert(devServerJs.includes("fetchExternalWordEntry"), "dev server should query an external dictionary for missing words");
   assert(devServerJs.includes("addWordEntry"), "dev server should add externally found words to the local dictionary");
@@ -117,6 +123,7 @@ try {
   assert(compoundDictionaryWordResult.recognized.includes("\u3084\u304d"), "compound dictionary words should expose the first recognized token");
   assert(compoundDictionaryWordResult.recognized.includes("\u305d\u3070"), "compound dictionary words should expose the second recognized token");
   assert(compoundDictionaryWordResult.recognized.includes("\u713c\u304d\u305d\u3070"), "compound dictionary words should expose representative converted forms");
+  assert(compoundDictionaryWordResult.upgrade.element === "fire", "compound dictionary words should infer elements from recognized forms");
   assert(splitDictionaryWord.ok && !splitDictionaryWordResult.valid, "word validation API should reject split dictionary fragments");
   assert(unknownWord.ok && !unknownWordResult.valid, "word validation API should reject and log unknown Japanese words");
   assert(versusState?.state?.score === 1234, "versus socket should relay peer state between players");
