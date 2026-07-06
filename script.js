@@ -1326,18 +1326,24 @@ function startNextPhase() {
   game.phase += 1;
   game.stage = game.phase;
   game.phaseTime = 0;
+  game.effects.slow = game.startingSlow;
+  if (isBossPhase(game.phase)) {
+    startFinalBattle();
+    return;
+  }
   game.phaseGoal = PHASE_DURATION + 6;
   game.spawnTimer = 1;
   game.letterTimer = 0.7;
-  game.effects.slow = game.startingSlow;
   game.mode = "phase";
   lastFrame = performance.now();
   setMessage(`Phase ${game.phase}: survive and collect more letters`);
 }
 
+function isBossPhase(phase) {
+  return phase > 0 && phase % 3 === 0;
+}
+
 function startFinalBattle() {
-  game.phase = 3;
-  game.stage = 3;
   game.phaseTime = 0;
   game.mode = "final";
   game.effects.slow = game.startingSlow;
@@ -1345,7 +1351,7 @@ function startFinalBattle() {
   game.letters.length = 0;
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
-  const maxHp = Math.round(520 + game.upgrades.length * 120);
+  const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
   game.boss = {
     x: WIDTH / 2,
     y: -70,
@@ -1357,7 +1363,7 @@ function startFinalBattle() {
     entry: 0,
   };
   lastFrame = performance.now();
-  setMessage("Final battle: finish the build");
+  setMessage(`Boss ${Math.floor(game.phase / 3)}: break through`);
 }
 
 function restoreOverlayHint() {
@@ -1399,7 +1405,7 @@ function checkCollisions() {
       consumed = true;
       burst(bullet.x, bullet.y, "#ffd36e", 3);
       if (game.boss.hp <= 0) {
-        clearStage();
+        clearBossPhase();
         return;
       }
     }
@@ -1458,15 +1464,15 @@ function damagePlayer() {
   if (p.hp <= 0) finish("game_over");
 }
 
-function clearStage() {
-  game.score += 2200 + game.player.hp * 260 + game.upgrades.length * 400;
-  game.stagesCleared = 3;
-  game.mode = "game_clear";
+function clearBossPhase() {
+  game.score += 1200 + game.phase * 160 + game.player.hp * 220;
+  game.stagesCleared = Math.max(game.stagesCleared, game.phase);
   game.boss = null;
   game.enemies.length = 0;
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
-  finish("game_clear");
+  setMessage(`Boss ${Math.floor(game.phase / 3)} cleared`);
+  enterUpgrade();
 }
 
 function finish(mode) {

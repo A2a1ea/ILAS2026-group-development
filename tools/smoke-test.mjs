@@ -49,8 +49,13 @@ try {
   assert(js.includes("VS matched"), "script.js should show matched only after a rival is present");
   assert(js.includes("function advanceAfterUpgrade"), "script.js should include upgrade progression logic");
   assert(js.includes("startNextPhase();"), "upgrade progression should continue into the next endless phase");
-  assert(js.includes("collect more letters"), "next phases should keep collecting letters instead of starting a final phase");
+  assert(js.includes("function isBossPhase"), "endless flow should include a recurring boss phase check");
+  assert(js.includes("phase % 3 === 0"), "endless flow should loop through two phases and then a boss");
+  assert(js.includes("function clearBossPhase"), "boss defeat should continue the endless run");
+  assert(js.includes("enterUpgrade();"), "boss defeat should return to the upgrade board");
+  assert(js.includes("collect more letters"), "non-boss phases should keep collecting letters");
   assert(js.includes("function enterUpgrade"), "script.js should include upgrade selection between phases");
+  assert(js.includes("function startFinalBattle"), "script.js should include recurring boss progression");
   assert(js.includes("function collectLetter"), "script.js should include bullet-based letter collection");
   assert(js.includes("function fireStoredLetter"), "script.js should include K-key letter discard shots");
   assert(js.includes("function forgeSelectedWord"), "script.js should include word-board forging");
