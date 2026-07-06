@@ -1,16 +1,21 @@
 import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { networkInterfaces } from "node:os";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import { WebSocketServer } from "ws";
 
+const require = createRequire(import.meta.url);
 const root = resolve(".");
 const rankingFile = join(root, ".logs", "rankings.json");
 const unknownWordsFile = join(root, ".logs", "unknown-words.json");
 const wordsFile = join(root, "data", "words-ja.json");
+const kuromoji = require("kuromoji");
+const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")), "dict");
 const port = readPort();
 const host = readHost();
+let tokenizerPromise = null;
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -355,6 +360,7 @@ async function handleWordValidation(request, response, url) {
   }
 
   let entry = readWordMap().get(word);
+  if (!entry) entry = await fetchKuromojiWordEntry(word);
   if (!entry) {
     try {
       entry = await fetchExternalWordEntry(word);
@@ -395,6 +401,43 @@ function readWordMap() {
   } catch {
     return new Map();
   }
+}
+
+async function fetchKuromojiWordEntry(word) {
+  const tokenizer = await getTokenizer();
+  const tokens = tokenizer.tokenize(word);
+  if (tokens.length !== 1) return null;
+
+  const [token] = tokens;
+  if (token.word_type !== "KNOWN") return null;
+
+  const surfaces = [
+    token.surface_form,
+    token.basic_form,
+    katakanaToHiragana(token.reading),
+    katakanaToHiragana(token.pronunciation),
+  ].filter((value) => value && value !== "*").map(normalizeKana);
+
+  if (!surfaces.includes(word)) return null;
+
+  return {
+    word,
+    ...inferWordEntry(word),
+    source: "kuromoji",
+  };
+}
+
+function getTokenizer() {
+  tokenizerPromise ||= new Promise((resolveTokenizer, rejectTokenizer) => {
+    kuromoji.builder({ dicPath: kuromojiDictPath }).build((error, tokenizer) => {
+      if (error) {
+        rejectTokenizer(error);
+        return;
+      }
+      resolveTokenizer(tokenizer);
+    });
+  });
+  return tokenizerPromise;
 }
 
 async function fetchExternalWordEntry(word) {
@@ -454,6 +497,10 @@ function inferWordEntry(word) {
 
 function normalizeKana(word) {
   return String(word).trim().toLowerCase().replace(/[ァ-ン]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60));
+}
+
+function katakanaToHiragana(word = "") {
+  return String(word).replace(/[\u30a1-\u30f6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60));
 }
 
 function rareLetterBonus(word) {

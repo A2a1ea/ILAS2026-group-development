@@ -17,6 +17,10 @@ try {
   const rankings = await fetch(`http://127.0.0.1:${port}/api/rankings/stages`);
   const word = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("ねこ")}`);
   const wordResult = await word.json();
+  const dictionaryWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("\u306f\u3057\u308b")}`);
+  const dictionaryWordResult = await dictionaryWord.json();
+  const splitDictionaryWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("\u3042\u3044\u3046")}`);
+  const splitDictionaryWordResult = await splitDictionaryWord.json();
   const unknownWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("てすとみとうろく")}`);
   const unknownWordResult = await unknownWord.json();
   const versusState = await verifyVersusSocket(port);
@@ -43,9 +47,10 @@ try {
   assert(js.includes("function updateRivalHud"), "script.js should update the opponent HUD");
   assert(js.includes("VS waiting"), "script.js should show waiting when no rival is connected");
   assert(js.includes("VS matched"), "script.js should show matched only after a rival is present");
-  assert(js.includes("function updateBoss"), "script.js should include boss logic");
+  assert(js.includes("function advanceAfterUpgrade"), "script.js should include upgrade progression logic");
+  assert(js.includes("startNextPhase();"), "upgrade progression should continue into the next endless phase");
+  assert(js.includes("collect more letters"), "next phases should keep collecting letters instead of starting a final phase");
   assert(js.includes("function enterUpgrade"), "script.js should include upgrade selection between phases");
-  assert(js.includes("function startFinalBattle"), "script.js should include final battle progression");
   assert(js.includes("function collectLetter"), "script.js should include bullet-based letter collection");
   assert(js.includes("function fireStoredLetter"), "script.js should include K-key letter discard shots");
   assert(js.includes("function forgeSelectedWord"), "script.js should include word-board forging");
@@ -59,6 +64,8 @@ try {
   assert(js.includes("normalizeKana"), "script.js should normalize Japanese kana words");
   assert(js.includes("WORD_ENDPOINT"), "script.js should use the local word validation API");
   assert(devServerJs.includes("logUnknownWord"), "dev server should log unknown words");
+  assert(devServerJs.includes("fetchKuromojiWordEntry"), "dev server should validate words through the morphological dictionary");
+  assert(devServerJs.includes('source: "kuromoji"'), "dev server should report dictionary-sourced words");
   assert(devServerJs.includes("fetchExternalWordEntry"), "dev server should query an external dictionary for missing words");
   assert(devServerJs.includes("addWordEntry"), "dev server should add externally found words to the local dictionary");
   assert(devServerJs.includes("WebSocketServer"), "dev server should host the versus WebSocket");
@@ -90,6 +97,8 @@ try {
   assert(asset.ok, "background image should be served");
   assert(rankings.ok, "ranking API should be served");
   assert(word.ok && wordResult.valid, "word validation API should validate local Japanese words");
+  assert(dictionaryWord.ok && dictionaryWordResult.valid && dictionaryWordResult.source === "kuromoji", "word validation API should accept one-token dictionary words");
+  assert(splitDictionaryWord.ok && !splitDictionaryWordResult.valid, "word validation API should reject split dictionary fragments");
   assert(unknownWord.ok && !unknownWordResult.valid, "word validation API should reject and log unknown Japanese words");
   assert(versusState?.state?.score === 1234, "versus socket should relay peer state between players");
   assert(duplicateJoin?.peers?.length === 0, "versus socket should not match duplicate connections from the same client");

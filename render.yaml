@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: ilas2026-browser-game
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start

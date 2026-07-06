@@ -4,12 +4,14 @@
   "private": true,
   "description": "Development environment for a browser game built in the ILAS2026 group repository.",
   "scripts": {
+    "start": "node tools/dev-server.mjs",
     "dev": "node tools/dev-server.mjs",
     "dev:5173": "node tools/dev-server.mjs --port 5173",
     "dev:local": "node tools/dev-server.mjs --host 127.0.0.1 --port 5173",
     "test": "node tools/smoke-test.mjs"
   },
   "dependencies": {
+    "kuromoji": "^0.1.2",
     "ws": "^8.21.0"
   }
 }

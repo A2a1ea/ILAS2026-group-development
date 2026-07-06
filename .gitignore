@@ -4,6 +4,7 @@ playwright-report/
 test-results/
 .logs/rankings.json
 .logs/unknown-words.json
+.logs/*.log
 .env
 .env.*
 !.env.example

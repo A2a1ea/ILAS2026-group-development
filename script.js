@@ -503,7 +503,7 @@ function updateStage(dt) {
 }
 
 function updateLetterSpawner(dt) {
-  if (!["phase", "final"].includes(game.mode)) return;
+  if (game.mode !== "phase") return;
   game.letterTimer -= dt;
   if (game.letterTimer <= 0) {
     spawnLetter();
@@ -978,12 +978,7 @@ async function forgeSelectedWord() {
 function advanceAfterUpgrade() {
   overlay.hidden = true;
   restoreOverlayHint();
-
-  if (game.phase >= 2) {
-    startFinalBattle();
-  } else {
-    startNextPhase();
-  }
+  startNextPhase();
 }
 
 async function toggleBoardCell(cellIndex) {
@@ -1337,7 +1332,7 @@ function startNextPhase() {
   game.effects.slow = game.startingSlow;
   game.mode = "phase";
   lastFrame = performance.now();
-  setMessage(`Phase ${game.phase}: survive and collect final letters`);
+  setMessage(`Phase ${game.phase}: survive and collect more letters`);
 }
 
 function startFinalBattle() {
@@ -1347,6 +1342,7 @@ function startFinalBattle() {
   game.mode = "final";
   game.effects.slow = game.startingSlow;
   game.enemies.length = 0;
+  game.letters.length = 0;
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
   const maxHp = Math.round(520 + game.upgrades.length * 120);
@@ -1480,7 +1476,7 @@ function finish(mode) {
   submitRanking();
   overlay.hidden = false;
   overlay.querySelector("h1").textContent = mode === "game_clear" ? "Run Clear" : "Game Over";
-  overlay.querySelector("p").textContent = `Flow ${game.stagesCleared}/3 / Score ${game.score} / Kills ${game.kills} / Hits ${game.hits}`;
+  overlay.querySelector("p").textContent = `Flow ${game.stagesCleared} / Score ${game.score} / Kills ${game.kills} / Hits ${game.hits}`;
   startButton.textContent = "Back to Title";
   restoreOverlayHint();
 }
@@ -1927,7 +1923,7 @@ function updateHud() {
   } else {
     timeEl.textContent = `${game.phase} ${Math.max(0, Math.ceil(game.phaseGoal - game.phaseTime))}s`;
   }
-  stateEl.textContent = `${game.stagesCleared}/3`;
+  stateEl.textContent = game.stagesCleared;
   const risk = inventoryRisk();
   const riskText = risk > 6 ? "危険" : risk > 0 ? "重い" : "余裕";
   letterRackEl.textContent = game.inventory.length
