@@ -19,6 +19,8 @@ try {
   const wordResult = await word.json();
   const dictionaryWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("\u306f\u3057\u308b")}`);
   const dictionaryWordResult = await dictionaryWord.json();
+  const compoundDictionaryWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("\u3084\u304d\u305d\u3070")}`);
+  const compoundDictionaryWordResult = await compoundDictionaryWord.json();
   const splitDictionaryWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("\u3042\u3044\u3046")}`);
   const splitDictionaryWordResult = await splitDictionaryWord.json();
   const unknownWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("てすとみとうろく")}`);
@@ -58,6 +60,7 @@ try {
   assert(js.includes("function startFinalBattle"), "script.js should include recurring boss progression");
   assert(js.includes("function collectLetter"), "script.js should include bullet-based letter collection");
   assert(js.includes("function fireStoredLetter"), "script.js should include K-key letter discard shots");
+  assert(js.includes("function formatRecognizedWord"), "script.js should show dictionary recognition details");
   assert(js.includes("function forgeSelectedWord"), "script.js should include word-board forging");
   assert(js.includes("function getBoardWords"), "script.js should extract board words from the filled grid");
   assert(js.includes("function scoreMoveAt"), "script.js should score words immediately after each placed tile");
@@ -70,12 +73,19 @@ try {
   assert(js.includes("WORD_ENDPOINT"), "script.js should use the local word validation API");
   assert(devServerJs.includes("logUnknownWord"), "dev server should log unknown words");
   assert(devServerJs.includes("fetchKuromojiWordEntry"), "dev server should validate words through the morphological dictionary");
+  assert(devServerJs.includes("isDictionaryWord"), "dev server should accept multi-token dictionary words");
+  assert(devServerJs.includes("isMeaningfulDictionaryToken"), "dev server should reject meaningless dictionary fragments");
+  assert(devServerJs.includes("conversionForms"), "dev server should include representative conversion forms for readings");
   assert(devServerJs.includes('source: "kuromoji"'), "dev server should report dictionary-sourced words");
   assert(devServerJs.includes("fetchExternalWordEntry"), "dev server should query an external dictionary for missing words");
   assert(devServerJs.includes("addWordEntry"), "dev server should add externally found words to the local dictionary");
   assert(devServerJs.includes("WebSocketServer"), "dev server should host the versus WebSocket");
   assert(devServerJs.includes("/ws/versus"), "dev server should expose the versus socket path");
   assert(js.includes("MAX_ACTIVE_ENEMIES = 5"), "script.js should cap active enemies at five");
+  assert(js.includes("ENEMY_TURN_TIME"), "script.js should time-limit enemies before they retreat");
+  assert(js.includes("ENEMY_TURN_Y"), "script.js should turn enemies before they reach the lower screen");
+  assert(js.includes("turning"), "script.js should track enemy U-turn state");
+  assert(js.includes("ENEMY_TURN_EXIT_SPEED"), "script.js should send timed-out enemies back upward");
   assert(js.includes("stageDensityScale"), "script.js should scale bullet density by flow phase");
   assert(js.includes("chooseEnemyType"), "script.js should vary enemy spawn types by flow phase");
   assert(js.includes("letterShield"), "script.js should include enemies that require letter bullets");
@@ -103,6 +113,10 @@ try {
   assert(rankings.ok, "ranking API should be served");
   assert(word.ok && wordResult.valid, "word validation API should validate local Japanese words");
   assert(dictionaryWord.ok && dictionaryWordResult.valid && dictionaryWordResult.source === "kuromoji", "word validation API should accept one-token dictionary words");
+  assert(compoundDictionaryWord.ok && compoundDictionaryWordResult.valid && compoundDictionaryWordResult.source === "kuromoji", "word validation API should accept 3+ character compound dictionary words");
+  assert(compoundDictionaryWordResult.recognized.includes("\u3084\u304d"), "compound dictionary words should expose the first recognized token");
+  assert(compoundDictionaryWordResult.recognized.includes("\u305d\u3070"), "compound dictionary words should expose the second recognized token");
+  assert(compoundDictionaryWordResult.recognized.includes("\u713c\u304d\u305d\u3070"), "compound dictionary words should expose representative converted forms");
   assert(splitDictionaryWord.ok && !splitDictionaryWordResult.valid, "word validation API should reject split dictionary fragments");
   assert(unknownWord.ok && !unknownWordResult.valid, "word validation API should reject and log unknown Japanese words");
   assert(versusState?.state?.score === 1234, "versus socket should relay peer state between players");

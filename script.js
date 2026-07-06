@@ -25,6 +25,9 @@ const PHASE_DURATION = 32;
 const MAX_HP = 5;
 const MAX_ACTIVE_ENEMIES = 5;
 const FIRST_STAGE_SPAWN_DELAY = 1.95;
+const ENEMY_TURN_TIME = 4.2;
+const ENEMY_TURN_Y = HEIGHT * 0.58;
+const ENEMY_TURN_EXIT_SPEED = 150;
 const RANKING_ENDPOINT = "/api/rankings/stages";
 const WORD_ENDPOINT = "/api/words/validate";
 const LETTER_POOL = "あああいいいううええおおかかききくくけこさしすすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん";
@@ -559,14 +562,15 @@ function spawnEnemy() {
   const x = 50 + Math.random() * (WIDTH - 100);
   const hpScale = 0.75 + (game.phase - 1) * 0.24;
   const speedScale = 0.72 + (game.phase - 1) * 0.12;
+  const turnTimer = ENEMY_TURN_TIME + Math.random() * 0.9;
   if (type === "A") {
-    game.enemies.push({ type: "A", x, y: -24, vx: 0, vy: 96 * speedScale, hp: Math.round(22 * hpScale), radius: 18, score: 100, shootTimer: 1.35 });
+    game.enemies.push({ type: "A", x, y: -24, vx: 0, vy: 96 * speedScale, turnTimer, turning: false, hp: Math.round(22 * hpScale), radius: 18, score: 100, shootTimer: 1.35 });
   } else if (type === "B") {
-    game.enemies.push({ type: "B", x, y: -24, baseX: x, vx: 0, vy: 72 * speedScale, hp: Math.round(35 * hpScale), radius: 21, score: 160, shootTimer: 1.15, wave: Math.random() * 8 });
+    game.enemies.push({ type: "B", x, y: -24, baseX: x, vx: 0, vy: 72 * speedScale, turnTimer, turning: false, hp: Math.round(35 * hpScale), radius: 21, score: 160, shootTimer: 1.15, wave: Math.random() * 8 });
   } else if (type === "C") {
-    game.enemies.push({ type: "C", x, y: -30, vx: 0, vy: 125 * speedScale, hp: Math.round(55 * hpScale), radius: 24, score: 240, shootTimer: 1.35, hold: 2.6 });
+    game.enemies.push({ type: "C", x, y: -30, vx: 0, vy: 125 * speedScale, turnTimer, turning: false, hp: Math.round(55 * hpScale), radius: 24, score: 240, shootTimer: 1.35, hold: 2.6 });
   } else {
-    game.enemies.push({ type: "D", x, y: -28, baseX: x, vx: 0, vy: 58 * speedScale, hp: Math.round(3 + game.phase), radius: 23, score: 280, shootTimer: 1.6, wave: Math.random() * 8, letterShield: true });
+    game.enemies.push({ type: "D", x, y: -28, baseX: x, vx: 0, vy: 58 * speedScale, turnTimer, turning: false, hp: Math.round(3 + game.phase), radius: 23, score: 280, shootTimer: 1.6, wave: Math.random() * 8, letterShield: true });
   }
 }
 
@@ -593,12 +597,19 @@ function updateEnemies(dt) {
   const slowScale = enemySlowScale();
   const densityScale = stageDensityScale();
   for (const e of game.enemies) {
+    e.turnTimer -= dt * slowScale;
+    if (!e.turning && (e.turnTimer <= 0 || e.y >= ENEMY_TURN_Y)) {
+      e.turning = true;
+      e.vy = -Math.max(Math.abs(e.vy), ENEMY_TURN_EXIT_SPEED);
+      e.hold = 0;
+    }
+
     if (e.type === "B" || e.type === "D") {
       e.wave += dt * 4.2 * slowScale;
       e.x = clamp(e.baseX + Math.sin(e.wave) * (e.type === "D" ? 44 : 60), e.radius, WIDTH - e.radius);
     }
 
-    if (e.type === "C" && e.y > 145 && e.hold > 0) {
+    if (!e.turning && e.type === "C" && e.y > 145 && e.hold > 0) {
       e.hold -= dt;
     } else {
       e.y += e.vy * dt * slowScale;
@@ -610,7 +621,7 @@ function updateEnemies(dt) {
       e.shootTimer = enemyShootDelay(e.type, densityScale);
     }
   }
-  game.enemies = game.enemies.filter((e) => e.y < HEIGHT + 50 && e.hp > 0);
+  game.enemies = game.enemies.filter((e) => e.y > -80 && e.y < HEIGHT + 50 && e.hp > 0);
 }
 
 function fireEnemyPattern(enemy) {
@@ -1034,7 +1045,7 @@ async function placeLetterAt(cellIndex, sourceIndex) {
   const result = await scoreMoveAt(cellIndex);
   game.upgradeBoard.busy = false;
   if (result.added.length) {
-    game.upgradeBoard.message = `${result.added.map((item) => item.word).join(" / ")} stored. Add more letters or confirm.`;
+    game.upgradeBoard.message = `${result.added.map(formatRecognizedWord).join(" / ")} stored. Add more letters or confirm.`;
   } else if (result.checked.length) {
     game.upgradeBoard.message = `${result.checked.map((item) => item.word).join(" / ")} はまだ辞書にありません。`;
   } else {
@@ -1097,12 +1108,18 @@ async function scoreMoveAt(cellIndex) {
     const powered = word.indices.some((cellIndex) => game.upgradeBoard.cells[cellIndex]?.powered);
     const upgrade = powered ? amplifyUpgrade(analysis, 3) : analysis;
     word.powered = powered;
+    word.recognized = upgrade.recognized || [word.word];
     game.upgradeBoard.foundWords.push(word);
     game.upgradeBoard.pendingUpgrades.push(upgrade);
     sendVersusWord(word, upgrade);
     added.push(word);
   });
   return { checked: candidates, added };
+}
+
+function formatRecognizedWord(item) {
+  const recognized = [...new Set(item.recognized || [])].filter((word) => word && word !== item.word);
+  return recognized.length ? `${item.word} (${recognized.join(" / ")})` : item.word;
 }
 
 function amplifyUpgrade(upgrade, multiplier) {

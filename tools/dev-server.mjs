@@ -13,6 +13,9 @@ const unknownWordsFile = join(root, ".logs", "unknown-words.json");
 const wordsFile = join(root, "data", "words-ja.json");
 const kuromoji = require("kuromoji");
 const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")), "dict");
+const conversionForms = new Map([
+  ["やきそば", ["焼きそば"]],
+]);
 const port = readPort();
 const host = readHost();
 let tokenizerPromise = null;
@@ -382,6 +385,7 @@ async function handleWordValidation(request, response, url) {
     valid: true,
     word,
     source: entry.source || "local",
+    recognized: entry.recognized || [word],
     upgrade: {
       valid: true,
       word,
@@ -390,6 +394,7 @@ async function handleWordValidation(request, response, url) {
       power,
       title: `${word} ${entry.label}`,
       description: describeUpgrade(entry.type, power),
+      recognized: entry.recognized || [word],
     },
   });
 }
@@ -406,11 +411,48 @@ function readWordMap() {
 async function fetchKuromojiWordEntry(word) {
   const tokenizer = await getTokenizer();
   const tokens = tokenizer.tokenize(word);
-  if (tokens.length !== 1) return null;
+  if (!isDictionaryWord(word, tokens)) return null;
 
-  const [token] = tokens;
-  if (token.word_type !== "KNOWN") return null;
+  return {
+    word,
+    ...inferWordEntry(word),
+    recognized: recognizedDictionaryWords(word, tokens),
+    source: "kuromoji",
+  };
+}
 
+function isDictionaryWord(word, tokens) {
+  if (tokens.length === 1) return tokenMatchesWord(tokens[0], word);
+  if ([...word].length < 3) return false;
+  if (!tokens.every(isMeaningfulDictionaryToken)) return false;
+  return tokens.map((token) => normalizeKana(token.surface_form)).join("") === word;
+}
+
+function recognizedDictionaryWords(word, tokens) {
+  if (tokens.length === 1) return [...new Set([word, ...tokenKanjiForms(tokens[0])])];
+  return [...new Set([
+    ...tokens.map((token) => normalizeKana(token.surface_form)),
+    ...wholeCompoundForms(word, tokens),
+  ])];
+}
+
+function wholeCompoundForms(word, tokens) {
+  const surfaces = tokens.map((token) => token.surface_form || "");
+  const candidates = [word, surfaces.join(""), ...(conversionForms.get(word) || [])];
+  const kanji = tokens.map((token) => tokenKanjiForms(token)[0] || token.surface_form || "").join("");
+  if (kanji) candidates.push(kanji);
+  return candidates.map(normalizeKana).filter(Boolean);
+}
+
+function tokenKanjiForms(token) {
+  if (!Array.isArray(token?.features)) return [];
+  return token.features
+    .slice(6)
+    .filter((value) => value && value !== "*" && /[^\u3040-\u309f\u30a0-\u30ff]/.test(value));
+}
+
+function tokenMatchesWord(token, word) {
+  if (!isMeaningfulDictionaryToken(token)) return false;
   const surfaces = [
     token.surface_form,
     token.basic_form,
@@ -418,13 +460,12 @@ async function fetchKuromojiWordEntry(word) {
     katakanaToHiragana(token.pronunciation),
   ].filter((value) => value && value !== "*").map(normalizeKana);
 
-  if (!surfaces.includes(word)) return null;
+  return surfaces.includes(word);
+}
 
-  return {
-    word,
-    ...inferWordEntry(word),
-    source: "kuromoji",
-  };
+function isMeaningfulDictionaryToken(token) {
+  if (token.word_type !== "KNOWN") return false;
+  return !["助詞", "助動詞", "記号", "フィラー"].includes(token.pos);
 }
 
 function getTokenizer() {
