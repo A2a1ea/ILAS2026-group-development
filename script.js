@@ -394,6 +394,7 @@ function createVersusStageSnapshot() {
       y: enemy.y,
       radius: enemy.radius,
       type: enemy.type,
+      element: enemy.element,
       letterShield: Boolean(enemy.letterShield),
     })),
     enemyBullets: game.enemyBullets.slice(0, 80).map((bullet) => ({
@@ -595,15 +596,24 @@ function spawnEnemy() {
   const hpScale = 0.75 + (game.phase - 1) * 0.24;
   const speedScale = 0.72 + (game.phase - 1) * 0.12;
   const turnTimer = ENEMY_TURN_TIME + Math.random() * 0.9;
+  const element = enemyElementForType(type);
   if (type === "A") {
-    game.enemies.push({ type: "A", x, y: -24, vx: 0, vy: 96 * speedScale, turnTimer, turning: false, hp: Math.round(22 * hpScale), radius: 18, score: 100, shootTimer: 1.35 });
+    game.enemies.push({ type: "A", element, x, y: -24, vx: 0, vy: 96 * speedScale, turnTimer, turning: false, hp: Math.round(22 * hpScale), radius: 18, score: 100, shootTimer: 1.35 });
   } else if (type === "B") {
-    game.enemies.push({ type: "B", x, y: -24, baseX: x, vx: 0, vy: 72 * speedScale, turnTimer, turning: false, hp: Math.round(35 * hpScale), radius: 21, score: 160, shootTimer: 1.15, wave: Math.random() * 8 });
+    game.enemies.push({ type: "B", element, x, y: -24, baseX: x, vx: 0, vy: 72 * speedScale, turnTimer, turning: false, hp: Math.round(35 * hpScale), radius: 21, score: 160, shootTimer: 1.15, wave: Math.random() * 8 });
   } else if (type === "C") {
-    game.enemies.push({ type: "C", x, y: -30, vx: 0, vy: 125 * speedScale, turnTimer, turning: false, hp: Math.round(55 * hpScale), radius: 24, score: 240, shootTimer: 1.35, hold: 2.6 });
+    game.enemies.push({ type: "C", element, x, y: -30, vx: 0, vy: 125 * speedScale, turnTimer, turning: false, hp: Math.round(55 * hpScale), radius: 24, score: 240, shootTimer: 1.35, hold: 2.6 });
   } else {
-    game.enemies.push({ type: "D", x, y: -28, baseX: x, vx: 0, vy: 58 * speedScale, turnTimer, turning: false, hp: Math.round(3 + game.phase), radius: 23, score: 280, shootTimer: 1.6, wave: Math.random() * 8, letterShield: true });
+    game.enemies.push({ type: "D", element, x, y: -28, baseX: x, vx: 0, vy: 58 * speedScale, turnTimer, turning: false, hp: Math.round(3 + game.phase), radius: 23, score: 280, shootTimer: 1.6, wave: Math.random() * 8, letterShield: true });
   }
+}
+
+function enemyElementForType(type) {
+  if (type === "A") return "fire";
+  if (type === "B") return "water";
+  if (type === "C") return "wind";
+  if (type === "D") return "earth";
+  return "neutral";
 }
 
 function enemySpawnDelay() {
@@ -659,16 +669,16 @@ function updateEnemies(dt) {
 function fireEnemyPattern(enemy) {
   const density = stageDensityScale();
   if (enemy.type === "A") {
-    fireAimed(enemy.x, enemy.y, 145 + density * 6, 7);
+    fireAimed(enemy.x, enemy.y, 145 + density * 6, 7, enemy.element);
     if (density >= 2) {
-      fireBullet(enemy.x, enemy.y, -45, 175, 7, "#ff6b9a");
-      fireBullet(enemy.x, enemy.y, 45, 175, 7, "#ff6b9a");
+      fireBullet(enemy.x, enemy.y, -45, 175, 7, "#ff6b9a", enemy.element);
+      fireBullet(enemy.x, enemy.y, 45, 175, 7, "#ff6b9a", enemy.element);
     }
   } else if (enemy.type === "B") {
     const spread = Math.min(2 + density, 6);
-    for (let i = -spread; i <= spread; i += 1) fireBullet(enemy.x, enemy.y, i * 28, 190, 7, "#ff8db3");
+    for (let i = -spread; i <= spread; i += 1) fireBullet(enemy.x, enemy.y, i * 28, 190, 7, "#ff8db3", enemy.element);
   } else {
-    fireCircle(enemy.x, enemy.y, 10 + density * 2, 140 + density * 8, "#ffcf6f");
+    fireCircle(enemy.x, enemy.y, 10 + density * 2, 140 + density * 8, "#ffcf6f", 0, enemy.element);
   }
 }
 
@@ -704,9 +714,9 @@ function updateBoss(dt) {
   boss.x = WIDTH / 2 + Math.sin(game.time * 1.2 * slowScale) * 92;
 }
 
-function fireAimed(x, y, speed, radius) {
+function fireAimed(x, y, speed, radius, element = currentEnemyElement()) {
   const angle = Math.atan2(game.player.y - y, game.player.x - x);
-  fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, radius, "#ff6b9a", currentEnemyElement());
+  fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, radius, "#ff6b9a", element);
 }
 
 function fireFan(x, y, centerAngle, count, spread, speed, color) {
@@ -717,10 +727,10 @@ function fireFan(x, y, centerAngle, count, spread, speed, color) {
   }
 }
 
-function fireCircle(x, y, count, speed, color, offset = 0) {
+function fireCircle(x, y, count, speed, color, offset = 0, element = currentEnemyElement()) {
   for (let i = 0; i < count; i += 1) {
     const angle = offset + (Math.PI * 2 * i) / count;
-    fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 6, color);
+    fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 6, color, element);
   }
 }
 
@@ -1457,6 +1467,17 @@ function bossElementForPhase(phase) {
   return cycle[(Math.floor(phase / 3) - 1) % cycle.length] || "fire";
 }
 
+function nextBossPhase() {
+  return Math.ceil((game.phase + (game.mode === "final" ? 0 : 1)) / 3) * 3;
+}
+
+function bossElementInfoText() {
+  if (game.boss) return `Boss: ${ELEMENT_LABELS[game.boss.element]} / Weak: ${ELEMENT_LABELS[game.boss.weakness]}`;
+  const phase = nextBossPhase();
+  const element = bossElementForPhase(phase);
+  return `Next Boss P${phase}: ${ELEMENT_LABELS[element]} / Weak: ${ELEMENT_LABELS[elementWeakness(element)]}`;
+}
+
 function elementWeakness(element) {
   return Object.keys(ELEMENT_BEATS).find((candidate) => ELEMENT_BEATS[candidate] === element) || "neutral";
 }
@@ -1827,7 +1848,7 @@ function drawRivalStageEntities(peer) {
 }
 
 function drawRivalEnemy(enemy) {
-  rivalCtx.fillStyle = enemy.type === "A" ? "#ff8db3" : enemy.type === "B" ? "#ffd36e" : enemy.type === "D" ? "#d6ff8f" : "#c99cff";
+  rivalCtx.fillStyle = ELEMENT_COLORS[enemy.element] || (enemy.type === "A" ? "#ff8db3" : enemy.type === "B" ? "#ffd36e" : enemy.type === "D" ? "#d6ff8f" : "#c99cff");
   rivalCtx.shadowColor = rivalCtx.fillStyle;
   rivalCtx.shadowBlur = 10;
   rivalCtx.beginPath();
@@ -1933,7 +1954,7 @@ function drawPlayerBullets() {
 
 function drawEnemies() {
   for (const e of game.enemies) {
-    ctx.fillStyle = e.type === "A" ? "#ff8db3" : e.type === "B" ? "#ffd36e" : e.type === "D" ? "#d6ff8f" : "#c99cff";
+    ctx.fillStyle = ELEMENT_COLORS[e.element] || (e.type === "A" ? "#ff8db3" : e.type === "B" ? "#ffd36e" : e.type === "D" ? "#d6ff8f" : "#c99cff");
     ctx.shadowColor = ctx.fillStyle;
     ctx.shadowBlur = 12;
     ctx.beginPath();
@@ -2062,9 +2083,10 @@ function updateHud() {
     .filter(([, time]) => time > 0)
     .map(([name, time]) => `${name} ${Math.ceil(time)}s`);
   const elementText = `Element: ${ELEMENT_LABELS[game.activeElement]} (${game.unlockedElements.map((element) => `${ELEMENTS.indexOf(element) + 1}:${ELEMENT_LABELS[element]}`).join(" ")})`;
+  const bossText = bossElementInfoText();
   const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
   const versusText = formatVersusHud();
-  effectsEl.textContent = [activeEffects.join(" / "), elementText, upgrades, versusText].filter(Boolean).join(" | ") || "no active effects";
+  effectsEl.textContent = [activeEffects.join(" / "), elementText, bossText, upgrades, versusText].filter(Boolean).join(" | ") || "no active effects";
   updateRivalHud();
 }
 

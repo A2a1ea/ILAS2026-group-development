@@ -65,6 +65,8 @@ try {
   assert(js.includes("switchElementByNumber"), "script.js should switch shot elements with number keys");
   assert(js.includes("elementBeats"), "script.js should compare bullet elements");
   assert(js.includes("bossElementForPhase"), "script.js should rotate boss elements");
+  assert(js.includes("bossElementInfoText"), "script.js should keep boss element information visible");
+  assert(js.includes("enemyElementForType"), "script.js should assign elements to normal enemies");
   assert(js.includes("weak to"), "script.js should show boss weakness messaging");
   assert(js.includes("function forgeSelectedWord"), "script.js should include word-board forging");
   assert(js.includes("function getBoardWords"), "script.js should extract board words from the filled grid");
