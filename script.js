@@ -53,6 +53,13 @@ const ELEMENT_BEATS = {
   light: "neutral",
   neutral: null,
 };
+const ELEMENT_KEYWORDS = {
+  fire: ["ほのお", "ひ", "やき", "焼", "あつ", "ねつ", "なつ", "たいよう", "あか", "火", "炎", "熱", "夏", "赤", "日", "太陽"],
+  water: ["みず", "あめ", "うみ", "なみ", "しお", "ゆき", "こおり", "かわ", "水", "雨", "海", "波", "潮", "雪", "氷", "川"],
+  wind: ["かぜ", "そら", "はね", "とり", "はやて", "くも", "つばさ", "風", "空", "羽", "鳥", "雲", "翼"],
+  earth: ["つち", "いし", "やま", "もり", "すな", "くさ", "はな", "たね", "土", "石", "山", "森", "砂", "草", "花", "種"],
+  light: ["ひかり", "ほし", "つき", "あかり", "にじ", "きぼう", "ゆめ", "光", "星", "月", "明", "灯", "虹", "希望", "夢"],
+};
 const RANKING_ENDPOINT = "/api/rankings/stages";
 const WORD_ENDPOINT = "/api/words/validate";
 const LETTER_POOL = "あああいいいううええおおかかききくくけこさしすすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん";
@@ -71,6 +78,7 @@ const WORD_EFFECTS = [
 const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
   "あかり", "あさひ", "いのち", "うてん", "おおかみ", "かがみ", "かみなり", "きつね", "きぼう", "くすり", "けむり", "こころ", "さくら", "しずく", "しっぽ", "しろ", "すばやさ", "たて", "ちから", "つばさ", "てんき", "ともしび", "ながれ", "はやて", "ひまわり", "ほのお", "まもり", "みらい", "やいば", "ゆめ", "りゅう",
+  "あか", "あつい", "ねつ", "なつ", "ひる", "やき", "やけ", "あめ", "かわ", "こおり", "しずく", "みなと", "かぜ", "はやて", "くも", "つばさ", "やま", "すな", "くさ", "たね", "あかり", "ひかり", "きぼう", "ゆめ",
 ]);
 const WORD_TAGS = [
   { type: "attack", label: "攻撃", words: ["ほのお", "ひ", "やいば", "かみなり", "てき", "おに", "りゅう"] },
@@ -976,7 +984,7 @@ function renderUpgradeBoard() {
   } else {
     const empty = document.createElement("span");
     empty.className = "board-note";
-    empty.textContent = "No letters collected. Forge will create a weak WILD upgrade.";
+    empty.textContent = "No letters collected. Confirm will continue without an upgrade.";
     rack.append(empty);
   }
   panel.append(rack);
@@ -1024,7 +1032,6 @@ async function forgeSelectedWord() {
   if (game.mode !== "upgrade" || game.upgradeBoard.busy) return;
   const validUpgrades = game.upgradeBoard.pendingUpgrades;
   if (!validUpgrades.length) {
-    applyDynamicUpgrade(createFallbackUpgrade("wild"));
     advanceAfterUpgrade();
     return;
   }
@@ -1333,11 +1340,9 @@ function createWordUpgrade(word) {
 
 function inferElement(word, recognized = []) {
   const combined = [word, ...recognized].join("");
-  if (/(ほのお|ひ|やき|焼|あつ|たいよう|火)/.test(combined)) return "fire";
-  if (/(みず|あめ|うみ|なみ|しお|水|雨|海)/.test(combined)) return "water";
-  if (/(かぜ|そら|はね|とり|風|空|羽|鳥)/.test(combined)) return "wind";
-  if (/(つち|いし|やま|もり|土|石|山|森)/.test(combined)) return "earth";
-  if (/(ひかり|ほし|つき|光|星|月)/.test(combined)) return "light";
+  for (const element of ["fire", "water", "wind", "earth", "light"]) {
+    if (ELEMENT_KEYWORDS[element].some((keyword) => combined.includes(keyword))) return element;
+  }
   return "neutral";
 }
 
@@ -1351,18 +1356,6 @@ function inferWordTag(word) {
 
 function rareLetterBonus(word) {
   return [...word].filter((char) => "ゃゅょっん".includes(char)).length;
-}
-
-function createFallbackUpgrade(word) {
-  return {
-    valid: true,
-    word,
-    type: "pattern",
-    label: "Pattern",
-    power: 1,
-    title: "おまかせ 弾幕",
-    description: "小さな拡散ショット。",
-  };
 }
 
 function describeDynamicUpgrade(type, power) {
@@ -1414,6 +1407,16 @@ function switchElementByNumber(key) {
   return true;
 }
 
+function cycleElement(direction) {
+  const unlocked = ELEMENTS.filter((element) => game.unlockedElements.includes(element));
+  if (!unlocked.length) return false;
+  const currentIndex = Math.max(0, unlocked.indexOf(game.activeElement));
+  const nextIndex = (currentIndex + direction + unlocked.length) % unlocked.length;
+  game.activeElement = unlocked[nextIndex];
+  setMessage(`${ELEMENT_LABELS[game.activeElement]} shot`);
+  return true;
+}
+
 function startNextPhase() {
   game.phase += 1;
   game.stage = game.phase;
@@ -1446,6 +1449,7 @@ function startFinalBattle() {
   const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
   const element = bossElementForPhase(game.phase);
   const weakness = elementWeakness(element);
+  unlockElement(weakness);
   game.boss = {
     x: WIDTH / 2,
     y: -70,
@@ -2251,12 +2255,14 @@ function showVersusMode() {
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  if (["a", "d", "w", "s", "j", "k", "shift", "enter", "escape", " ", "1", "2", "3", "4", "5", "6"].includes(key)) event.preventDefault();
+  if (["a", "d", "w", "s", "j", "k", "q", "e", "tab", "shift", "enter", "escape", " ", "1", "2", "3", "4", "5", "6"].includes(key)) event.preventDefault();
   if (key === "enter" && !["phase", "final"].includes(game.mode)) handleStartButton();
   if (key === "escape") togglePause();
   if (key === " ") debugInvincible = true;
   if (key === "k" && !event.repeat) fireStoredLetter();
   if (!event.repeat && /^[1-6]$/.test(key)) switchElementByNumber(key);
+  if (!event.repeat && key === "q") cycleElement(-1);
+  if (!event.repeat && (key === "e" || key === "tab")) cycleElement(1);
   keys.add(key);
 });
 

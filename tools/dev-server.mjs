@@ -16,6 +16,13 @@ const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")),
 const conversionForms = new Map([
   ["やきそば", ["焼きそば"]],
 ]);
+const ELEMENT_KEYWORDS = {
+  fire: ["ほのお", "ひ", "やき", "焼", "あつ", "ねつ", "なつ", "たいよう", "あか", "火", "炎", "熱", "夏", "赤", "日", "太陽"],
+  water: ["みず", "あめ", "うみ", "なみ", "しお", "ゆき", "こおり", "かわ", "水", "雨", "海", "波", "潮", "雪", "氷", "川"],
+  wind: ["かぜ", "そら", "はね", "とり", "はやて", "くも", "つばさ", "風", "空", "羽", "鳥", "雲", "翼"],
+  earth: ["つち", "いし", "やま", "もり", "すな", "くさ", "はな", "たね", "土", "石", "山", "森", "砂", "草", "花", "種"],
+  light: ["ひかり", "ほし", "つき", "あかり", "にじ", "きぼう", "ゆめ", "光", "星", "月", "明", "灯", "虹", "希望", "夢"],
+};
 const port = readPort();
 const host = readHost();
 let tokenizerPromise = null;
@@ -541,11 +548,9 @@ function inferWordEntry(word) {
 
 function inferElement(word, recognized = []) {
   const combined = [word, ...recognized].join("");
-  if (/(ほのお|ひ|やき|焼|あつ|たいよう|火)/.test(combined)) return "fire";
-  if (/(みず|あめ|うみ|なみ|しお|水|雨|海)/.test(combined)) return "water";
-  if (/(かぜ|そら|はね|とり|風|空|羽|鳥)/.test(combined)) return "wind";
-  if (/(つち|いし|やま|もり|土|石|山|森)/.test(combined)) return "earth";
-  if (/(ひかり|ほし|つき|光|星|月)/.test(combined)) return "light";
+  for (const element of ["fire", "water", "wind", "earth", "light"]) {
+    if (ELEMENT_KEYWORDS[element].some((keyword) => combined.includes(keyword))) return element;
+  }
   return "neutral";
 }
 

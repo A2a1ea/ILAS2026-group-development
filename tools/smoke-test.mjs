@@ -62,7 +62,11 @@ try {
   assert(js.includes("function fireStoredLetter"), "script.js should include K-key letter discard shots");
   assert(js.includes("function formatRecognizedWord"), "script.js should show dictionary recognition details");
   assert(js.includes("ELEMENT_BEATS"), "script.js should define elemental advantage rules");
+  assert(js.includes("ELEMENT_KEYWORDS"), "script.js should define expanded elemental word keywords");
   assert(js.includes("switchElementByNumber"), "script.js should switch shot elements with number keys");
+  assert(js.includes("function cycleElement"), "script.js should cycle shot elements with quick keys");
+  assert(js.includes('key === "q"'), "script.js should cycle elements backward with Q");
+  assert(js.includes('key === "e" || key === "tab"'), "script.js should cycle elements forward with E or Tab");
   assert(js.includes("elementBeats"), "script.js should compare bullet elements");
   assert(js.includes("bossElementForPhase"), "script.js should rotate boss elements");
   assert(js.includes("bossElementInfoText"), "script.js should keep boss element information visible");
@@ -84,6 +88,7 @@ try {
   assert(devServerJs.includes("isMeaningfulDictionaryToken"), "dev server should reject meaningless dictionary fragments");
   assert(devServerJs.includes("conversionForms"), "dev server should include representative conversion forms for readings");
   assert(devServerJs.includes("inferElement"), "dev server should infer elements from dictionary words");
+  assert(devServerJs.includes("ELEMENT_KEYWORDS"), "dev server should share expanded elemental word keywords");
   assert(devServerJs.includes('source: "kuromoji"'), "dev server should report dictionary-sourced words");
   assert(devServerJs.includes("fetchExternalWordEntry"), "dev server should query an external dictionary for missing words");
   assert(devServerJs.includes("addWordEntry"), "dev server should add externally found words to the local dictionary");
