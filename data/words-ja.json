@@ -176,12 +176,6 @@
       "label": "弾幕"
     },
     {
-      "word": "たまご",
-      "type": "pattern",
-      "label": "弾幕",
-      "source": "wiktionary"
-    },
-    {
       "word": "つき",
       "type": "control",
       "label": "制御"

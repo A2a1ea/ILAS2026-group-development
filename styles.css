@@ -32,7 +32,7 @@ body {
 }
 
 .game-shell {
-  width: min(100vw, 960px);
+  width: min(100vw, 430px);
   padding: clamp(12px, 2vw, 24px);
 }
 
@@ -67,27 +67,6 @@ body {
   line-height: 1;
 }
 
-.versus-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 540px) minmax(220px, 320px);
-  align-items: start;
-  gap: 12px;
-}
-
-.play-column,
-.rival-column {
-  display: grid;
-  gap: 8px;
-}
-
-.screen-label {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .stage-wrap {
   position: relative;
   overflow: hidden;
@@ -96,43 +75,6 @@ body {
   background: #071120;
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
   aspect-ratio: 27 / 40;
-}
-
-.rival-column {
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  background: var(--panel);
-  padding: 10px;
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.26);
-}
-
-#rivalGame {
-  border: 1px solid rgba(174, 224, 255, 0.18);
-  border-radius: 8px;
-  background: #071120;
-  aspect-ratio: 27 / 40;
-}
-
-.rival-hud {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.rival-hud > div {
-  border: 1px solid rgba(174, 224, 255, 0.16);
-  border-radius: 8px;
-  background: rgba(7, 17, 32, 0.62);
-  padding: 8px;
-}
-
-.rival-hud strong {
-  display: block;
-  margin-top: 2px;
-  color: var(--gold);
-  font-size: 0.92rem;
-  line-height: 1.1;
-  overflow-wrap: anywhere;
 }
 
 .status-panel {
@@ -170,6 +112,62 @@ canvas {
   height: 100%;
   display: block;
   touch-action: none;
+}
+
+.buff-tray {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 148px;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.buff-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(238, 248, 255, 0.45);
+  border-radius: 8px;
+  background: rgba(7, 17, 32, 0.76);
+  color: #eef8ff;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+.buff-attack {
+  border-color: rgba(255, 107, 154, 0.85);
+  color: #ff9fbd;
+}
+
+.buff-mobility,
+.buff-fast {
+  border-color: rgba(121, 231, 255, 0.85);
+  color: #79e7ff;
+}
+
+.buff-defense {
+  border-color: rgba(214, 255, 143, 0.85);
+  color: #d6ff8f;
+}
+
+.buff-control,
+.buff-slow {
+  border-color: rgba(255, 211, 110, 0.85);
+  color: #ffd36e;
+}
+
+.buff-life {
+  border-color: rgba(238, 248, 255, 0.85);
+  color: #eef8ff;
 }
 
 .overlay {
@@ -219,11 +217,42 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
+select {
+  min-height: 2.75rem;
+  border: 1px solid rgba(174, 224, 255, 0.34);
+  border-radius: 8px;
+  background: rgba(7, 17, 32, 0.88);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  padding: 0 34px 0 12px;
+}
+
+select:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 3px;
+}
+
 .menu-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+.key-config {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 2.75rem;
+  border: 1px solid rgba(174, 224, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(9, 20, 38, 0.72);
+  padding: 0 8px 0 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
 }
 
 .hint {
@@ -373,10 +402,6 @@ button:focus-visible {
 
   .game-shell {
     padding: 10px;
-  }
-
-  .versus-layout {
-    grid-template-columns: 1fr;
   }
 
   .hud {

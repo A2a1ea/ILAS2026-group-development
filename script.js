@@ -1,21 +1,17 @@
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
-const rivalCanvas = document.querySelector("#rivalGame");
-const rivalCtx = rivalCanvas?.getContext("2d");
 const scoreEl = document.querySelector("#score");
 const hpEl = document.querySelector("#hp");
 const timeEl = document.querySelector("#time");
 const stateEl = document.querySelector("#best");
 const letterRackEl = document.querySelector("#letterRack");
 const effectsEl = document.querySelector("#effects");
-const rivalNameEl = document.querySelector("#rivalName");
-const rivalHpEl = document.querySelector("#rivalHp");
-const rivalScoreEl = document.querySelector("#rivalScore");
-const rivalPhaseEl = document.querySelector("#rivalPhase");
+const buffTrayEl = document.querySelector("#buffTray");
 const rankingListEl = document.querySelector("#rankingList");
 const overlay = document.querySelector("#overlay");
 const startButton = document.querySelector("#startButton");
-const versusButton = document.querySelector("#versusButton");
+const keyPresetEl = document.querySelector("#keyPreset");
+const controlHintEl = document.querySelector("#controlHint");
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
@@ -35,13 +31,43 @@ const REWARD_LETTERS = ["ね", "こ", "そ", "ら", "は", "な", "み", "ず", 
 const BOARD_COLS = 7;
 const BOARD_ROWS = 5;
 const BOARD_SIZE = BOARD_COLS * BOARD_ROWS;
-const VERSUS_CLIENT_ID = globalThis.crypto?.randomUUID
-  ? crypto.randomUUID()
-  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const WORD_EFFECTS = [
   { word: "fast", label: "Fast", target: "self", duration: 8 },
   { word: "slow", label: "Slow", target: "enemy", duration: 7 },
   { word: "life", label: "Life", target: "self", duration: 0 },
+];
+const KEY_PRESETS = {
+  standard: {
+    label: "WASD / J / K",
+    hint: "WASDで移動、Shiftで低速、Jでショット、Kで文字弾、Spaceで属性切り替え。",
+    keys: {
+      a: "left",
+      d: "right",
+      w: "up",
+      s: "down",
+      shift: "focus",
+      j: "shoot",
+      k: "letterShot",
+    },
+  },
+  touhou: {
+    label: "東方式 / 矢印 / Z / X",
+    hint: "矢印キーで移動、Shiftで低速、Zでショット、Xで文字弾、Spaceで属性切り替え。",
+    keys: {
+      arrowleft: "left",
+      arrowright: "right",
+      arrowup: "up",
+      arrowdown: "down",
+      shift: "focus",
+      z: "shoot",
+      x: "letterShot",
+    },
+  },
+};
+const SHOT_ATTRIBUTES = [
+  { id: "attack", label: "Attack", color: "#ff6b9a", glow: "#ff6b9a", damage: 1.18 },
+  { id: "mobility", label: "Speed", color: "#79e7ff", glow: "#79e7ff", damage: 1 },
+  { id: "control", label: "Control", color: "#ffd36e", glow: "#ffd36e", damage: 0.92 },
 ];
 const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
@@ -66,28 +92,10 @@ const WORD_TAGS = [
   "やま", "やみ", "やり", "ゆび", "ゆみ", "よこ", "よし", "よみ", "よめ", "らく", "らん", "りん", "るす", "れい", "れき", "ろう", "わに", "わら"
 ].forEach((word) => LOCAL_WORDS.add(word));
 const keys = new Set();
-let debugInvincible = false;
+let keyPreset = readKeyPreset();
 
 let game = createGame("title");
 let lastFrame = 0;
-let versus = createVersusState();
-
-function createVersusState() {
-  return {
-    enabled: false,
-    socket: null,
-    roomId: "default",
-    playerId: null,
-    connected: false,
-    peers: [],
-    peerState: null,
-    started: false,
-    heartbeatTimer: null,
-    lastSent: 0,
-    lastWord: "",
-    message: "",
-  };
-}
 
 function createGame(mode = "title") {
   return {
@@ -105,6 +113,7 @@ function createGame(mode = "title") {
     bossTimer: 0,
     kills: 0,
     hits: 0,
+    shotAttributeIndex: 0,
     scroll: 0,
     flash: 0,
     message: mode === "title" ? "ひらがなを集めて、ことばで強化しよう。" : "",
@@ -120,11 +129,11 @@ function createGame(mode = "title") {
       busy: false,
     },
     upgrades: [],
+    buffIcons: [],
     startingSlow: 0,
     effects: {
       fast: 0,
       slow: 0,
-      jam: 0,
     },
     player: {
       x: WIDTH / 2,
@@ -188,305 +197,7 @@ function update(dt) {
   updateParticles(dt);
   updateStage(dt);
   checkCollisions();
-  updateHud();
-  sendVersusState();
-}
-
-function startVersusMode() {
-  stopVersus();
-  versus = createVersusState();
-  versus.enabled = true;
-  versus.roomId = localStorage.getItem("vbg-versus-room") || "default";
-  showVersusWaitingOverlay();
-  connectVersus();
-}
-
-function showVersusWaitingOverlay() {
-  game = createGame("title");
-  overlay.hidden = false;
-  overlay.querySelector("h1").textContent = "対戦待機中";
-  overlay.querySelector("p").textContent = `Room ${versus.roomId}: 相手が入ったら自動で始まります。`;
-  startButton.textContent = "ループモード";
-  if (versusButton) versusButton.textContent = "待機中";
-  const hint = overlay.querySelector(".hint");
-  if (hint) hint.textContent = "別ブラウザ、別端末、またはシークレットウィンドウから同じURLで対戦を押すとマッチします。";
-  updateHud();
-  draw();
-}
-
-function connectVersus() {
-  if (!versus.enabled) return;
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const socket = new WebSocket(`${protocol}//${location.host}/ws/versus`);
-  versus.socket = socket;
-  versus.message = "connecting";
-
-  socket.addEventListener("open", () => {
-    sendVersus("join", {
-      roomId: versus.roomId,
-      name: readPlayerName(),
-      clientId: readVersusClientId(),
-    });
-  });
-
-  socket.addEventListener("message", (event) => {
-    try {
-      handleVersusSocketMessage(JSON.parse(event.data));
-    } catch {
-      versus.message = "bad packet";
-    }
-  });
-
-  socket.addEventListener("close", () => {
-    if (!versus.enabled) return;
-    versus.connected = false;
-    versus.message = "reconnecting";
-    setTimeout(() => {
-      if (versus.enabled) connectVersus();
-    }, 1000);
-  });
-
-  socket.addEventListener("error", () => {
-    versus.message = "connection error";
-  });
-}
-
-function handleVersusSocketMessage(message) {
-  if (!message || typeof message.type !== "string") return;
-  if (message.type === "hello") {
-    versus.playerId = message.id;
-    return;
-  }
-  if (message.type === "joined") {
-    versus.connected = true;
-    versus.peers = Array.isArray(message.peers) ? message.peers : [];
-    versus.message = versus.peers.length ? "matched" : "waiting for rival";
-    if (versus.peers.length) {
-      startMatchedVersus(`VS room ${message.roomId}: matched`);
-    } else {
-      showVersusWaitingOverlay();
-    }
-    return;
-  }
-  if (message.type === "peer-joined") {
-    versus.peers = Array.isArray(message.peers) ? message.peers : versus.peers;
-    versus.message = `matched with ${message.name || "Rival"}`;
-    startMatchedVersus(versus.message);
-    return;
-  }
-  if (message.type === "peer-left") {
-    versus.peers = Array.isArray(message.peers) ? message.peers : [];
-    versus.message = "waiting for rival";
-    return;
-  }
-  if (message.type === "peer-state") {
-    versus.peerState = {
-      ...message.state,
-      id: message.from,
-      name: message.name || "Rival",
-      receivedAt: performance.now(),
-    };
-    return;
-  }
-  if (message.type === "peer-word") {
-    const word = message.word?.word || message.word || "";
-    versus.lastWord = word;
-    versus.message = `${message.name || "Rival"} made ${word}`;
-    applyVersusSabotage(message.word, message.name || "Rival");
-    setMessage(versus.message);
-    return;
-  }
-  if (message.type === "peer-finish") {
-    versus.message = `${message.name || "Rival"} finished: ${message.result}`;
-    setMessage(versus.message);
-  }
-}
-
-function startMatchedVersus(message) {
-  if (!versus.enabled || versus.started) {
-    setMessage(message);
-    forceSendVersusState();
-    return;
-  }
-  versus.started = true;
-  startGame();
-  setMessage(message);
-  if (versusButton) versusButton.textContent = "対戦";
-  forceSendVersusState();
-  versus.heartbeatTimer = setInterval(forceSendVersusState, 500);
-}
-
-function sendVersus(type, payload = {}) {
-  const socket = versus.socket;
-  if (!versus.enabled || !socket || socket.readyState !== WebSocket.OPEN) return;
-  socket.send(JSON.stringify({ type, ...payload }));
-}
-
-function sendVersusState() {
-  if (!versus.enabled || !versus.connected) return;
-  if (!["phase", "final", "upgrade", "pause", "game_clear", "game_over"].includes(game.mode)) return;
-  const now = performance.now();
-  if (now - versus.lastSent < 120) return;
-  versus.lastSent = now;
-  sendVersusStatePayload();
-}
-
-function forceSendVersusState() {
-  if (!versus.enabled || !versus.connected) return;
-  if (!["phase", "final", "upgrade", "pause", "game_clear", "game_over"].includes(game.mode)) return;
-  versus.lastSent = performance.now();
-  sendVersusStatePayload();
-}
-
-function sendVersusStatePayload() {
-  sendVersus("state", {
-    state: {
-      mode: game.mode,
-      score: game.score,
-      hp: game.player.hp,
-      maxHp: game.player.maxHp,
-      phase: game.phase,
-      phaseTime: game.phaseTime,
-      phaseGoal: game.phaseGoal,
-      stagesCleared: game.stagesCleared,
-      inventory: game.inventory.length,
-      words: game.upgradeBoard.foundWords.length,
-      stageView: createVersusStageSnapshot(),
-      bossHp: game.boss ? game.boss.hp : null,
-      bossMaxHp: game.boss ? game.boss.maxHp : null,
-      x: game.player.x,
-      y: game.player.y,
-    },
-  });
-}
-
-function createVersusStageSnapshot() {
-  return {
-    enemies: game.enemies.slice(0, 10).map((enemy) => ({
-      x: enemy.x,
-      y: enemy.y,
-      radius: enemy.radius,
-      type: enemy.type,
-      letterShield: Boolean(enemy.letterShield),
-    })),
-    enemyBullets: game.enemyBullets.slice(0, 80).map((bullet) => ({
-      x: bullet.x,
-      y: bullet.y,
-      radius: bullet.radius,
-      color: bullet.color,
-    })),
-    playerBullets: game.playerBullets.slice(0, 40).map((bullet) => ({
-      x: bullet.x,
-      y: bullet.y,
-      radius: bullet.radius,
-      type: bullet.type,
-      char: bullet.char,
-    })),
-    letters: game.letters.slice(0, 16).map((letter) => ({
-      x: letter.x,
-      y: letter.y,
-      radius: letter.radius,
-      char: letter.char,
-      powered: Boolean(letter.powered),
-    })),
-    boss: game.boss ? {
-      x: game.boss.x,
-      y: game.boss.y,
-      radius: game.boss.radius,
-      hp: game.boss.hp,
-      maxHp: game.boss.maxHp,
-    } : null,
-  };
-}
-
-function sendVersusWord(word, upgrade) {
-  if (!versus.enabled || !versus.connected) return;
-  sendVersus("word", {
-    word: {
-      word: word.word,
-      powered: Boolean(word.powered),
-      direction: word.direction,
-      title: upgrade.title,
-      type: upgrade.type,
-      power: upgrade.power,
-    },
-  });
-}
-
-function applyVersusSabotage(wordPayload, rivalName) {
-  if (!versus.enabled || !["phase", "final"].includes(game.mode)) return;
-  const type = wordPayload?.type || "pattern";
-  const power = clamp(Number(wordPayload?.power) || 1, 1, 6);
-  const word = wordPayload?.word || "word";
-  if (type === "attack") {
-    const count = 3 + Math.floor(power / 2);
-    for (let i = 0; i < count; i += 1) {
-      const x = 70 + (i * (WIDTH - 140)) / Math.max(1, count - 1);
-      fireAimed(x, 42, 160 + power * 18, 6);
-    }
-    setMessage(`${rivalName} の ${word}: 狙い弾`);
-    return;
-  }
-  if (type === "pattern") {
-    fireCircle(WIDTH / 2, 120, 10 + power * 2, 120 + power * 12, "#ff9f6e", game.time);
-    setMessage(`${rivalName} の ${word}: 弾幕`);
-    return;
-  }
-  if (type === "control") {
-    game.effects.jam = Math.max(game.effects.jam || 0, 2.4 + power * 0.45);
-    setMessage(`${rivalName} の ${word}: 操作妨害`);
-    return;
-  }
-  if (type === "mobility") {
-    const direction = Math.random() < 0.5 ? 1 : -1;
-    const startX = direction > 0 ? -20 : WIDTH + 20;
-    const vx = direction * (120 + power * 16);
-    for (let i = 0; i < 4 + power; i += 1) {
-      fireBullet(startX, 120 + i * 76, vx, 26 * Math.sin(i), 6, "#ffd36e");
-    }
-    setMessage(`${rivalName} の ${word}: 横流し弾`);
-    return;
-  }
-  spawnVersusShield(power);
-  setMessage(`${rivalName} の ${word}: 盾敵`);
-}
-
-function spawnVersusShield(power) {
-  const x = 70 + Math.random() * (WIDTH - 140);
-  game.enemies.push({
-    type: "D",
-    x,
-    y: -28,
-    baseX: x,
-    vx: 0,
-    vy: 58 + power * 6,
-    hp: 3 + Math.ceil(power / 2),
-    radius: 23,
-    score: 160,
-    shootTimer: 1.4,
-    wave: Math.random() * 8,
-    letterShield: true,
-  });
-}
-
-function sendVersusFinish(result) {
-  if (!versus.enabled || !versus.connected) return;
-  sendVersus("finish", {
-    result,
-    score: game.score,
-    stagesCleared: game.stagesCleared,
-  });
-}
-
-function stopVersus() {
-  if (versus.heartbeatTimer) clearInterval(versus.heartbeatTimer);
-  if (versus.socket) {
-    const socket = versus.socket;
-    versus.socket = null;
-    socket.close();
-  }
-  versus = createVersusState();
-  if (versusButton) versusButton.textContent = "対戦";
+  updateHud();
 }
 
 function updateStage(dt) {
@@ -518,26 +229,26 @@ function updatePlayer(dt) {
   const p = game.player;
   let dx = 0;
   let dy = 0;
-  if (keys.has("a")) dx -= 1;
-  if (keys.has("d")) dx += 1;
-  if (keys.has("w")) dy -= 1;
-  if (keys.has("s")) dy += 1;
+  if (isActionPressed("left")) dx -= 1;
+  if (isActionPressed("right")) dx += 1;
+  if (isActionPressed("up")) dy -= 1;
+  if (isActionPressed("down")) dy += 1;
   const speedBoost = game.effects.fast > 0 ? 1.45 : 1;
-  const jamScale = game.effects.jam > 0 ? 0.68 : 1;
-  const speed = (keys.has("shift") ? p.slowSpeed : p.speed) * speedBoost * inventoryMoveScale() * jamScale;
+  const speed = (isActionPressed("focus") ? p.slowSpeed : p.speed) * speedBoost * inventoryMoveScale();
   const len = Math.hypot(dx, dy) || 1;
   p.x = clamp(p.x + (dx / len) * speed * dt, PLAYER_RADIUS, WIDTH - PLAYER_RADIUS);
   p.y = clamp(p.y + (dy / len) * speed * dt, 78, HEIGHT - PLAYER_RADIUS);
   p.invuln = Math.max(0, p.invuln - dt);
   p.shotCooldown = Math.max(0, p.shotCooldown - dt);
 
-  if (keys.has("j") && p.shotCooldown <= 0) {
-    const damage = 8 + p.bulletDamageBonus;
-    game.playerBullets.push({ x: p.x - 7, y: p.y - 18, vx: 0, vy: -720, radius: 4, damage, type: "normal" });
-    game.playerBullets.push({ x: p.x + 7, y: p.y - 18, vx: 0, vy: -720, radius: 4, damage, type: "normal" });
+  if (isActionPressed("shoot") && p.shotCooldown <= 0) {
+    const attribute = currentShotAttribute();
+    const damage = (8 + p.bulletDamageBonus) * attribute.damage;
+    game.playerBullets.push(createPlayerShot(p.x - 7, p.y - 18, 0, -720, damage, attribute));
+    game.playerBullets.push(createPlayerShot(p.x + 7, p.y - 18, 0, -720, damage, attribute));
     if (p.spread > 0) {
-      game.playerBullets.push({ x: p.x, y: p.y - 18, vx: -120, vy: -650, radius: 4, damage: Math.max(6, damage - 2), type: "normal" });
-      game.playerBullets.push({ x: p.x, y: p.y - 18, vx: 120, vy: -650, radius: 4, damage: Math.max(6, damage - 2), type: "normal" });
+      game.playerBullets.push(createPlayerShot(p.x, p.y - 18, -120, -650, Math.max(6, damage - 2), attribute));
+      game.playerBullets.push(createPlayerShot(p.x, p.y - 18, 120, -650, Math.max(6, damage - 2), attribute));
     }
     p.shotCooldown = Math.max(0.045, 0.09 * p.fireRateMultiplier);
   }
@@ -555,6 +266,33 @@ function updatePlayerBullets(dt) {
     b.y += b.vy * dt;
   }
   game.playerBullets = game.playerBullets.filter((b) => b.y > -20);
+}
+
+function currentShotAttribute() {
+  return SHOT_ATTRIBUTES[game.shotAttributeIndex] || SHOT_ATTRIBUTES[0];
+}
+
+function createPlayerShot(x, y, vx, vy, damage, attribute) {
+  return {
+    x,
+    y,
+    vx,
+    vy,
+    radius: 4,
+    damage,
+    type: "normal",
+    attribute: attribute.id,
+    color: attribute.color,
+    glow: attribute.glow,
+  };
+}
+
+function cycleShotAttribute() {
+  if (!["phase", "final"].includes(game.mode)) return;
+  game.shotAttributeIndex = (game.shotAttributeIndex + 1) % SHOT_ATTRIBUTES.length;
+  const attribute = currentShotAttribute();
+  setMessage(`Attribute: ${attribute.label}`);
+  updateHud();
 }
 
 function spawnEnemy() {
@@ -1110,8 +848,7 @@ async function scoreMoveAt(cellIndex) {
     word.powered = powered;
     word.recognized = upgrade.recognized || [word.word];
     game.upgradeBoard.foundWords.push(word);
-    game.upgradeBoard.pendingUpgrades.push(upgrade);
-    sendVersusWord(word, upgrade);
+    game.upgradeBoard.pendingUpgrades.push(upgrade);
     added.push(word);
   });
   return { checked: candidates, added };
@@ -1335,8 +1072,28 @@ function applyDynamicUpgrade(upgrade) {
     p.spread += 1;
   }
   game.upgrades.push(upgrade.title);
+  addBuffIcon(upgrade);
   game.score += 120 + upgrade.word.length * 90 + upgrade.power * 60;
   setMessage(upgrade.description);
+}
+
+function addBuffIcon(upgrade) {
+  game.buffIcons.push({
+    icon: buffIconForType(upgrade.type),
+    type: upgrade.type || "pattern",
+    title: upgrade.title,
+    description: upgrade.description,
+  });
+  game.buffIcons = game.buffIcons.slice(-8);
+}
+
+function buffIconForType(type) {
+  if (type === "attack") return "A";
+  if (type === "mobility") return ">";
+  if (type === "defense") return "D";
+  if (type === "control") return "~";
+  if (type === "life") return "+";
+  return "*";
 }
 
 function startNextPhase() {
@@ -1385,7 +1142,7 @@ function startFinalBattle() {
 
 function restoreOverlayHint() {
   const hint = overlay.querySelector(".hint");
-  hint.textContent = "Shoot falling letters to collect them. Build words between phases to choose upgrades.";
+  hint.textContent = KEY_PRESETS[keyPreset].hint;
 }
 
 function checkCollisions() {
@@ -1472,7 +1229,6 @@ function rewardLetterShield(enemy) {
 
 function damagePlayer() {
   const p = game.player;
-  if (debugInvincible) return;
   p.hp -= 1;
   p.invuln = 1.4;
   game.hits += 1;
@@ -1493,8 +1249,7 @@ function clearBossPhase() {
 }
 
 function finish(mode) {
-  game.mode = mode;
-  sendVersusFinish(mode);
+  game.mode = mode;
   updateHud();
   submitRanking();
   overlay.hidden = false;
@@ -1546,8 +1301,7 @@ function draw() {
   drawPlayer();
   drawParticles();
   drawBossHp();
-  drawMessage();
-  drawRivalScreen();
+  drawMessage();
   if (game.flash > 0) {
     ctx.fillStyle = `rgba(255, 80, 120, ${game.flash * 1.6})`;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -1593,7 +1347,7 @@ function drawPlayer() {
   ctx.lineTo(p.x + 15, p.y + 16);
   ctx.closePath();
   ctx.fill();
-  if (keys.has("shift")) {
+  if (isActionPressed("focus")) {
     ctx.shadowBlur = 0;
     ctx.strokeStyle = "#ffd36e";
     ctx.lineWidth = 2;
@@ -1602,200 +1356,6 @@ function drawPlayer() {
     ctx.stroke();
   }
   ctx.restore();
-}
-
-function drawVersusPeer() {
-  const peer = versus.peerState;
-  if (!versus.enabled || !peer || !Number.isFinite(peer.x) || !Number.isFinite(peer.y)) return;
-  if (performance.now() - peer.receivedAt > 2500) return;
-  ctx.save();
-  ctx.globalAlpha = 0.72;
-  ctx.strokeStyle = "#ff9f6e";
-  ctx.fillStyle = "rgba(255, 159, 110, 0.14)";
-  ctx.shadowColor = "#ff9f6e";
-  ctx.shadowBlur = 14;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(peer.x, peer.y - 22);
-  ctx.lineTo(peer.x - 17, peer.y + 17);
-  ctx.lineTo(peer.x, peer.y + 9);
-  ctx.lineTo(peer.x + 17, peer.y + 17);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.font = "700 12px ui-sans-serif, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#ffd9c7";
-  ctx.fillText(peer.name || "Rival", peer.x, peer.y + 34);
-  ctx.restore();
-}
-
-function drawRivalScreen() {
-  if (!rivalCtx || !rivalCanvas) return;
-  const w = rivalCanvas.width;
-  const h = rivalCanvas.height;
-  rivalCtx.fillStyle = "#071120";
-  rivalCtx.fillRect(0, 0, w, h);
-  rivalCtx.save();
-  const scroll = game.scroll % 80;
-  rivalCtx.translate(0, scroll);
-  for (let y = -80; y < h + 80; y += 80) {
-    rivalCtx.strokeStyle = "rgba(255, 159, 110, 0.08)";
-    rivalCtx.beginPath();
-    rivalCtx.moveTo(0, y);
-    rivalCtx.lineTo(w, y);
-    rivalCtx.stroke();
-    for (let x = 30; x < w; x += 76) {
-      rivalCtx.fillStyle = "rgba(255, 211, 110, 0.24)";
-      rivalCtx.fillRect(x, y + (x % 41), 2, 2);
-    }
-  }
-  rivalCtx.restore();
-
-  const peer = versus.peerState;
-  const fresh = peer && performance.now() - peer.receivedAt <= 4000;
-  if (!fresh || !Number.isFinite(peer.x) || !Number.isFinite(peer.y)) {
-    rivalCtx.fillStyle = "rgba(238, 248, 255, 0.76)";
-    rivalCtx.font = "800 24px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.textAlign = "center";
-    rivalCtx.fillText(versus.enabled ? "WAITING" : "RIVAL", w / 2, h / 2 - 8);
-    rivalCtx.font = "700 14px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.fillStyle = "rgba(168, 190, 209, 0.9)";
-    rivalCtx.fillText("no opponent signal", w / 2, h / 2 + 22);
-    return;
-  }
-
-  drawRivalStageEntities(peer);
-
-  const x = clamp(peer.x, PLAYER_RADIUS, w - PLAYER_RADIUS);
-  const y = clamp(peer.y, 78, h - PLAYER_RADIUS);
-  rivalCtx.save();
-  rivalCtx.fillStyle = "rgba(255, 159, 110, 0.18)";
-  rivalCtx.strokeStyle = "#ff9f6e";
-  rivalCtx.shadowColor = "#ff9f6e";
-  rivalCtx.shadowBlur = 18;
-  rivalCtx.lineWidth = 4;
-  rivalCtx.beginPath();
-  rivalCtx.moveTo(x, y - 24);
-  rivalCtx.lineTo(x - 18, y + 18);
-  rivalCtx.lineTo(x, y + 10);
-  rivalCtx.lineTo(x + 18, y + 18);
-  rivalCtx.closePath();
-  rivalCtx.fill();
-  rivalCtx.stroke();
-  rivalCtx.shadowBlur = 0;
-  rivalCtx.fillStyle = "#ffd9c7";
-  rivalCtx.font = "800 14px ui-sans-serif, system-ui, sans-serif";
-  rivalCtx.textAlign = "center";
-  rivalCtx.fillText(peer.name || "Rival", x, y + 38);
-  rivalCtx.restore();
-
-  rivalCtx.fillStyle = "rgba(7, 17, 32, 0.7)";
-  rivalCtx.fillRect(18, 18, w - 36, 48);
-  rivalCtx.fillStyle = "#ff9f6e";
-  rivalCtx.font = "800 16px ui-sans-serif, system-ui, sans-serif";
-  rivalCtx.textAlign = "left";
-  rivalCtx.fillText(`HP ${peer.hp ?? "-"} / ${peer.maxHp ?? "-"}`, 30, 38);
-  rivalCtx.fillStyle = "#ffd36e";
-  rivalCtx.fillText(`Score ${peer.score || 0}`, 30, 58);
-}
-
-function drawRivalStageEntities(peer) {
-  const view = peer.stageView || {};
-  if (peer.mode === "upgrade") {
-    rivalCtx.save();
-    rivalCtx.fillStyle = "rgba(255, 211, 110, 0.12)";
-    rivalCtx.fillRect(36, 310, rivalCanvas.width - 72, 96);
-    rivalCtx.fillStyle = "#ffd36e";
-    rivalCtx.font = "800 24px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.textAlign = "center";
-    rivalCtx.fillText("BUILDING WORDS", rivalCanvas.width / 2, 354);
-    rivalCtx.font = "700 14px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.fillStyle = "rgba(238, 248, 255, 0.86)";
-    rivalCtx.fillText(`letters ${peer.inventory || 0} / words ${peer.words || 0}`, rivalCanvas.width / 2, 382);
-    rivalCtx.restore();
-    return;
-  }
-
-  if (view.boss) drawRivalBoss(view.boss);
-  for (const enemy of view.enemies || []) drawRivalEnemy(enemy);
-  for (const bullet of view.playerBullets || []) drawRivalPlayerBullet(bullet);
-  for (const bullet of view.enemyBullets || []) drawRivalEnemyBullet(bullet);
-  for (const letter of view.letters || []) drawRivalLetter(letter);
-}
-
-function drawRivalEnemy(enemy) {
-  rivalCtx.fillStyle = enemy.type === "A" ? "#ff8db3" : enemy.type === "B" ? "#ffd36e" : enemy.type === "D" ? "#d6ff8f" : "#c99cff";
-  rivalCtx.shadowColor = rivalCtx.fillStyle;
-  rivalCtx.shadowBlur = 10;
-  rivalCtx.beginPath();
-  rivalCtx.arc(enemy.x, enemy.y, enemy.radius || 18, 0, Math.PI * 2);
-  rivalCtx.fill();
-  if (enemy.letterShield) {
-    rivalCtx.shadowBlur = 0;
-    rivalCtx.strokeStyle = "#eef8ff";
-    rivalCtx.lineWidth = 3;
-    rivalCtx.stroke();
-  }
-  rivalCtx.shadowBlur = 0;
-}
-
-function drawRivalBoss(boss) {
-  const pct = boss.maxHp ? clamp(boss.hp / boss.maxHp, 0, 1) : 0;
-  rivalCtx.fillStyle = "#ff6b9a";
-  rivalCtx.shadowColor = "#ff6b9a";
-  rivalCtx.shadowBlur = 18;
-  rivalCtx.beginPath();
-  rivalCtx.ellipse(boss.x, boss.y, (boss.radius || 40) * 1.25, boss.radius || 40, 0, 0, Math.PI * 2);
-  rivalCtx.fill();
-  rivalCtx.shadowBlur = 0;
-  rivalCtx.fillStyle = "rgba(255, 255, 255, 0.16)";
-  rivalCtx.fillRect(32, 78, rivalCanvas.width - 64, 8);
-  rivalCtx.fillStyle = "#ff6b9a";
-  rivalCtx.fillRect(32, 78, (rivalCanvas.width - 64) * pct, 8);
-}
-
-function drawRivalEnemyBullet(bullet) {
-  rivalCtx.fillStyle = bullet.color || "#ff6b9a";
-  rivalCtx.shadowColor = rivalCtx.fillStyle;
-  rivalCtx.shadowBlur = 7;
-  rivalCtx.beginPath();
-  rivalCtx.arc(bullet.x, bullet.y, bullet.radius || 6, 0, Math.PI * 2);
-  rivalCtx.fill();
-  rivalCtx.shadowBlur = 0;
-}
-
-function drawRivalPlayerBullet(bullet) {
-  rivalCtx.fillStyle = bullet.type === "letter" ? "#ffd36e" : "#baf6ff";
-  rivalCtx.shadowColor = rivalCtx.fillStyle;
-  rivalCtx.shadowBlur = 8;
-  rivalCtx.beginPath();
-  rivalCtx.roundRect(bullet.x - 3, bullet.y - 10, 6, 18, 3);
-  rivalCtx.fill();
-  rivalCtx.shadowBlur = 0;
-  if (bullet.type === "letter" && bullet.char) {
-    rivalCtx.fillStyle = "#071120";
-    rivalCtx.font = "800 14px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.textAlign = "center";
-    rivalCtx.fillText(bullet.char, bullet.x, bullet.y + 5);
-  }
-}
-
-function drawRivalLetter(letter) {
-  rivalCtx.fillStyle = letter.powered ? "#ffe38d" : "rgba(7, 17, 32, 0.86)";
-  rivalCtx.strokeStyle = "#d6ff8f";
-  rivalCtx.lineWidth = 2;
-  rivalCtx.beginPath();
-  rivalCtx.arc(letter.x, letter.y, letter.radius || 14, 0, Math.PI * 2);
-  rivalCtx.fill();
-  rivalCtx.stroke();
-  rivalCtx.fillStyle = letter.powered ? "#071120" : "#eef8ff";
-  rivalCtx.font = "800 18px ui-sans-serif, system-ui, sans-serif";
-  rivalCtx.textAlign = "center";
-  rivalCtx.textBaseline = "middle";
-  rivalCtx.fillText(letter.char || "", letter.x, letter.y + 1);
-  rivalCtx.textBaseline = "alphabetic";
 }
 
 function drawPlayerBullets() {
@@ -1818,8 +1378,8 @@ function drawPlayerBullets() {
       ctx.fillStyle = "#eef8ff";
       ctx.fillText(b.char, b.x, b.y + 1);
     } else {
-      ctx.fillStyle = "#baf6ff";
-      ctx.shadowColor = "#79e7ff";
+      ctx.fillStyle = b.color || "#baf6ff";
+      ctx.shadowColor = b.glow || "#79e7ff";
       ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.roundRect(b.x - 3, b.y - 12, 6, 18, 3);
@@ -1955,43 +1515,46 @@ function updateHud() {
   const activeEffects = Object.entries(game.effects)
     .filter(([, time]) => time > 0)
     .map(([name, time]) => `${name} ${Math.ceil(time)}s`);
+  const attributeText = `Attr: ${currentShotAttribute().label}`;
   const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
-  const versusText = formatVersusHud();
-  effectsEl.textContent = [activeEffects.join(" / "), upgrades, versusText].filter(Boolean).join(" | ") || "no active effects";
-  updateRivalHud();
+  effectsEl.textContent = [attributeText, activeEffects.join(" / "), upgrades].filter(Boolean).join(" | ");
+  updateBuffTray();
 }
 
-function updateRivalHud() {
-  if (!rivalNameEl || !rivalHpEl || !rivalScoreEl || !rivalPhaseEl) return;
-  const peer = versus.peerState;
-  const fresh = peer && performance.now() - peer.receivedAt <= 4000;
-  if (!fresh) {
-    rivalNameEl.textContent = versus.enabled ? "Waiting" : "Rival";
-    rivalHpEl.textContent = "-";
-    rivalScoreEl.textContent = "0";
-    rivalPhaseEl.textContent = "-";
-    return;
-  }
-  rivalNameEl.textContent = peer.name || "Rival";
-  rivalHpEl.textContent = Number.isFinite(peer.hp) && Number.isFinite(peer.maxHp) ? `${peer.hp}/${peer.maxHp}` : "-";
-  rivalScoreEl.textContent = Number.isFinite(peer.score) ? peer.score : "0";
-  if (peer.mode === "upgrade") {
-    rivalPhaseEl.textContent = `Build ${peer.phase || "-"} / ${peer.board?.foundWords?.length || 0} words`;
-  } else {
-    rivalPhaseEl.textContent = peer.mode === "final" ? "Final" : peer.phase || "-";
+function updateBuffTray() {
+  if (!buffTrayEl) return;
+  const timed = Object.entries(game.effects)
+    .filter(([, time]) => time > 0)
+    .map(([type, time]) => ({
+      icon: timedBuffIcon(type),
+      type,
+      title: `${type} ${Math.ceil(time)}s`,
+      description: timedBuffDescription(type),
+    }));
+  const permanent = (game.buffIcons || []).slice(-5);
+  const icons = [...timed, ...permanent];
+  buffTrayEl.hidden = icons.length === 0;
+  buffTrayEl.innerHTML = "";
+  for (const item of icons) {
+    const icon = document.createElement("span");
+    icon.className = `buff-icon buff-${item.type || "pattern"}`;
+    icon.textContent = item.icon;
+    icon.title = [item.title, item.description].filter(Boolean).join(" - ");
+    icon.setAttribute("aria-label", icon.title || "buff");
+    buffTrayEl.append(icon);
   }
 }
 
-function formatVersusHud() {
-  if (!versus.enabled) return "";
-  const matched = versus.peers.length > 0 || Boolean(versus.peerState);
-  const connection = versus.connected
-    ? matched ? "VS matched" : "VS waiting"
-    : `VS ${versus.message || "offline"}`;
-  if (!versus.peerState) return connection;
-  const peer = versus.peerState;
-  const hp = Number.isFinite(peer.hp) && Number.isFinite(peer.maxHp) ? `${peer.hp}/${peer.maxHp}` : "-";
-  return `${connection}: ${peer.name || "Rival"} HP ${hp} Score ${peer.score || 0} Phase ${peer.phase || 1}`;
+function timedBuffIcon(type) {
+  if (type === "fast") return ">";
+  if (type === "slow") return "~";
+  return "*";
+}
+
+function timedBuffDescription(type) {
+  if (type === "fast") return "speed up";
+  if (type === "slow") return "enemy slow";
+  return "timed effect";
 }
 
 function setMessage(message) {
@@ -2039,9 +1602,6 @@ function readPlayerName() {
   return generated;
 }
 
-function readVersusClientId() {
-  return VERSUS_CLIENT_ID;
-}
 
 function saveLocalRanking(entry) {
   const rankings = rankEntries([...readLocalRankings(), entry]);
@@ -2094,48 +1654,68 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function readKeyPreset() {
+  const stored = localStorage.getItem("vbg-key-preset");
+  return KEY_PRESETS[stored] ? stored : "standard";
+}
+
+function setKeyPreset(value) {
+  keyPreset = KEY_PRESETS[value] ? value : "standard";
+  localStorage.setItem("vbg-key-preset", keyPreset);
+  keys.clear();
+  updateKeyPresetUi();
+}
+
+function updateKeyPresetUi() {
+  if (keyPresetEl) keyPresetEl.value = keyPreset;
+  if (controlHintEl && game.mode !== "upgrade") controlHintEl.textContent = KEY_PRESETS[keyPreset].hint;
+}
+
+function normalizeInputKey(event) {
+  return event.key.toLowerCase();
+}
+
+function keyAction(key) {
+  return KEY_PRESETS[keyPreset].keys[key] || null;
+}
+
+function isActionPressed(action) {
+  return [...keys].some((key) => keyAction(key) === action);
+}
+
+function shouldPreventKey(key) {
+  return Boolean(keyAction(key)) || ["enter", "escape", " "].includes(key);
+}
+
 function handleStartButton() {
   if (game.mode === "upgrade") {
     forgeSelectedWord();
     return;
   }
-  stopVersus();
   startGame();
 }
 
 startButton.addEventListener("click", handleStartButton);
-versusButton?.addEventListener("click", showVersusMode);
-
-function showVersusMode() {
-  startVersusMode();
-  return;
-  game = createGame("title");
-  overlay.hidden = false;
-  overlay.querySelector("h1").textContent = "対戦";
-  overlay.querySelector("p").textContent = "対戦モードは準備中です。まずはループモードでことば強化を試せます。";
-  startButton.textContent = "ループモード";
-  if (versusButton) versusButton.textContent = "対戦";
-  restoreOverlayHint();
-  updateHud();
-  draw();
-}
+keyPresetEl?.addEventListener("change", () => {
+  setKeyPreset(keyPresetEl.value);
+});
 
 window.addEventListener("keydown", (event) => {
-  const key = event.key.toLowerCase();
-  if (["a", "d", "w", "s", "j", "k", "shift", "enter", "escape", " "].includes(key)) event.preventDefault();
+  const key = normalizeInputKey(event);
+  if (shouldPreventKey(key)) event.preventDefault();
   if (key === "enter" && !["phase", "final"].includes(game.mode)) handleStartButton();
   if (key === "escape") togglePause();
-  if (key === " ") debugInvincible = true;
-  if (key === "k" && !event.repeat) fireStoredLetter();
+  if (key === " " && !event.repeat) cycleShotAttribute();
+  if (keyAction(key) === "letterShot" && !event.repeat) fireStoredLetter();
   keys.add(key);
 });
 
 window.addEventListener("keyup", (event) => {
-  const key = event.key.toLowerCase();
-  if (key === " ") debugInvincible = false;
+  const key = normalizeInputKey(event);
   keys.delete(key);
 });
 
+updateKeyPresetUi();
 updateHud();
 loadRankings();
 draw();

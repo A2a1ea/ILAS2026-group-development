@@ -5,7 +5,7 @@ This repository contains a lightweight browser game development environment for 
 ## Requirements
 
 - Node.js 18 or newer.
-- Run `npm install` once so the local WebSocket dependency is available.
+- Run `npm install` once so the local dictionary dependency is available.
 
 ## Commands
 
@@ -34,7 +34,6 @@ The dev server listens on the local network by default. Use the printed `Network
 - Carrying too many letters now adds risk: movement gets heavier, and heavy hoarding also raises enemy bullet pressure.
 - Phase 2+ can spawn letter-shield enemies that resist normal shots, must be damaged with K-fired letter bullets, and reward useful hiragana when defeated.
 - Letter-shield rewards are colored hiragana tiles; any upgrade word using one gets triple effect power.
-- The versus button starts a real-time room on `/ws/versus`; player state, position, word events, and finish results are relayed between browsers in the same room.
 - The current MVP includes scrolling background, enemies, enemy bullets, HP, upgrades, recurring boss phases, endless online flow rankings through the dev server, and game over.
 - The generated background asset is still stored at `assets/courtyard-bg.png`; the current game also draws a code-native scrolling starfield over the stage.
 - Work logs are stored under `.logs/`.
