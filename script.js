@@ -7,6 +7,7 @@ const stateEl = document.querySelector("#best");
 const letterRackEl = document.querySelector("#letterRack");
 const effectsEl = document.querySelector("#effects");
 const buffTrayEl = document.querySelector("#buffTray");
+const upgradeSummaryEl = document.querySelector("#upgradeSummary");
 const rankingListEl = document.querySelector("#rankingList");
 const overlay = document.querySelector("#overlay");
 const startButton = document.querySelector("#startButton");
@@ -761,7 +762,7 @@ function fireSplitBounce(x, y, vx, vy, radius, color, accent, splitLevel) {
   const bullet = fireBullet(x, y, vx, vy, radius, color);
   bullet.motion = "split-bounce";
   bullet.splitLevel = splitLevel;
-  bullet.bouncesLeft = Math.max(0, 3 - splitLevel);
+  bullet.splitsLeft = Math.max(0, 3 - splitLevel);
   bullet.accent = accent;
   bullet.age = 0;
   bullet.grace = 0.08;
@@ -879,7 +880,7 @@ function updatePauseAimBullet(b, dt) {
 function updateSplitBounceBullet(b, dt) {
   b.age = (b.age || 0) + dt;
   b.grace = Math.max(0, (b.grace || 0) - dt);
-  if (b.grace > 0 || b.bouncesLeft <= 0) return;
+  if (b.grace > 0) return;
 
   let bounced = false;
   if (b.x < b.radius + 18) {
@@ -902,10 +903,12 @@ function updateSplitBounceBullet(b, dt) {
   }
 
   if (!bounced) return;
-  b.bouncesLeft -= 1;
   b.grace = 0.12;
   b.color = b.accent || b.color;
-  spawnSplitBounceChild(b);
+  if (b.splitsLeft > 0) {
+    b.splitsLeft -= 1;
+    spawnSplitBounceChild(b);
+  }
 }
 
 function spawnSplitBounceChild(parent) {
@@ -2597,6 +2600,7 @@ function updateHud() {
   const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
   effectsEl.textContent = [attributeText, activeEffects.join(" / "), upgrades].filter(Boolean).join(" | ");
   updateBuffTray();
+  updateUpgradeSummary();
 }
 
 function updateBuffTray() {
@@ -2618,6 +2622,8 @@ function updateBuffTray() {
     icon.className = `buff-icon buff-${item.type || "pattern"}`;
     icon.textContent = item.icon;
     icon.title = [item.title, item.description].filter(Boolean).join(" - ");
+    icon.dataset.tooltip = [item.title, item.description].filter(Boolean).join("\n");
+    icon.tabIndex = 0;
     icon.setAttribute("aria-label", icon.title || "buff");
     buffTrayEl.append(icon);
   }
@@ -2633,6 +2639,28 @@ function timedBuffDescription(type) {
   if (type === "fast") return "speed up";
   if (type === "slow") return "enemy slow";
   return "timed effect";
+}
+
+function updateUpgradeSummary() {
+  if (!upgradeSummaryEl) return;
+  const upgrades = (game.buffIcons || []).slice(-7);
+  upgradeSummaryEl.innerHTML = "";
+  if (!upgrades.length) {
+    const empty = document.createElement("li");
+    empty.textContent = "No upgrades yet";
+    upgradeSummaryEl.append(empty);
+    return;
+  }
+  for (const upgrade of upgrades) {
+    const item = document.createElement("li");
+    const title = document.createElement("strong");
+    const description = document.createElement("span");
+    title.textContent = upgrade.title || upgrade.type || "Upgrade";
+    description.textContent = upgrade.description || "";
+    item.className = `upgrade-summary-item buff-${upgrade.type || "pattern"}`;
+    item.append(title, description);
+    upgradeSummaryEl.append(item);
+  }
 }
 
 function setMessage(message) {

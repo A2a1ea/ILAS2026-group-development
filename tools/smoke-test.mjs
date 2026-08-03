@@ -77,6 +77,7 @@ try {
   assert(html.includes("debugPanel"), "index.html should include the hidden debug panel");
   assert(html.includes("debugBossSelect"), "index.html should include debug boss selection");
   assert(html.includes("buffTray"), "index.html should include the buff icon tray");
+  assert(html.includes("upgradeSummary"), "index.html should include a readable upgrade summary");
   assert(!html.includes("versusButton"), "index.html should not include the versus mode button");
   assert(!html.includes("rivalGame"), "index.html should not include the opponent canvas");
   assert(html.includes("script.js"), "index.html should load script.js");
@@ -93,6 +94,7 @@ try {
   assert(!js.includes("sendVersusState"), "script.js should not sync versus state");
   assert(!js.includes("drawRivalScreen"), "script.js should not draw the opponent screen");
   assert(js.includes("function updateBuffTray"), "script.js should update the buff icon tray");
+  assert(js.includes("function updateUpgradeSummary"), "script.js should update the readable upgrade summary");
   assert(js.includes("function buffIconForType"), "script.js should choose buff icons by type");
   assert(js.includes("function advanceAfterUpgrade"), "script.js should include upgrade progression logic");
   assert(js.includes("startNextPhase();"), "upgrade progression should continue into the next endless phase");
