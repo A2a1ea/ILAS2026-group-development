@@ -3,14 +3,13 @@ import { createServer } from "node:http";
 import { networkInterfaces } from "node:os";
 import { createRequire } from "node:module";
 import { dirname, extname, join, normalize, resolve, sep } from "node:path";
-import { randomUUID } from "node:crypto";
-import { WebSocketServer } from "ws";
 
 const require = createRequire(import.meta.url);
 const root = resolve(".");
 const rankingFile = join(root, ".logs", "rankings.json");
 const unknownWordsFile = join(root, ".logs", "unknown-words.json");
 const wordsFile = join(root, "data", "words-ja.json");
+const wordUpgradeSheetFile = join(root, "data", "word-upgrades.csv");
 const kuromoji = require("kuromoji");
 const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")), "dict");
 const conversionForms = new Map([
@@ -78,173 +77,6 @@ server.listen(port, host, () => {
   console.log(`Lantern Dash dev server: http://127.0.0.1:${port}/`);
   for (const url of networkUrls(port)) console.log(`Network URL: ${url}`);
 });
-
-const rooms = new Map();
-const sockets = new Map();
-const wss = new WebSocketServer({ server, path: "/ws/versus" });
-
-wss.on("connection", (socket) => {
-  const id = randomUUID();
-  sockets.set(socket, { id, clientId: id, roomId: null, name: `P${id.slice(0, 4)}`, alive: true });
-  sendSocket(socket, "hello", { id });
-
-  socket.on("pong", () => {
-    const meta = sockets.get(socket);
-    if (meta) meta.alive = true;
-  });
-
-  socket.on("message", (raw) => {
-    let message;
-    try {
-      message = JSON.parse(String(raw));
-    } catch {
-      sendSocket(socket, "error", { message: "Invalid JSON" });
-      return;
-    }
-    handleVersusMessage(socket, message);
-  });
-
-  socket.on("close", () => {
-    leaveVersusRoom(socket);
-    sockets.delete(socket);
-  });
-});
-
-setInterval(() => {
-  for (const socket of wss.clients) {
-    const meta = sockets.get(socket);
-    if (!meta) continue;
-    if (!meta.alive) {
-      leaveVersusRoom(socket);
-      sockets.delete(socket);
-      socket.terminate();
-      continue;
-    }
-    meta.alive = false;
-    socket.ping();
-  }
-}, 5000);
-
-function handleVersusMessage(socket, message) {
-  if (message.type === "join") {
-    joinVersusRoom(socket, message.roomId, message.name, message.clientId);
-    return;
-  }
-  if (message.type === "state") {
-    broadcastToRoom(socket, "peer-state", { state: message.state || {} });
-    return;
-  }
-  if (message.type === "word") {
-    broadcastToRoom(socket, "peer-word", { word: message.word || null });
-    return;
-  }
-  if (message.type === "finish") {
-    broadcastToRoom(socket, "peer-finish", {
-      result: message.result,
-      score: message.score,
-      stagesCleared: message.stagesCleared,
-    });
-  }
-}
-
-function joinVersusRoom(socket, requestedRoomId, requestedName, requestedClientId) {
-  leaveVersusRoom(socket);
-  const meta = sockets.get(socket);
-  if (!meta) return;
-  meta.roomId = sanitizeRoomId(requestedRoomId);
-  meta.name = String(requestedName || meta.name).slice(0, 18);
-  meta.clientId = sanitizeClientId(requestedClientId || meta.clientId);
-  if (!rooms.has(meta.roomId)) rooms.set(meta.roomId, new Set());
-  replaceDuplicateClient(socket, meta.roomId, meta.clientId);
-  rooms.get(meta.roomId).add(socket);
-  sendSocket(socket, "joined", {
-    roomId: meta.roomId,
-    playerId: meta.id,
-    peers: roomPeers(meta.roomId, socket),
-  });
-  broadcastRoster(meta.roomId, socket, "peer-joined", { id: meta.id, name: meta.name });
-}
-
-function leaveVersusRoom(socket) {
-  const meta = sockets.get(socket);
-  if (!meta?.roomId) return;
-  const room = rooms.get(meta.roomId);
-  if (room) {
-    room.delete(socket);
-    if (!room.size) rooms.delete(meta.roomId);
-  }
-  broadcastRoster(meta.roomId, socket, "peer-left", { id: meta.id, name: meta.name });
-  meta.roomId = null;
-}
-
-function broadcastToRoom(sender, type, payload) {
-  const meta = sockets.get(sender);
-  if (!meta?.roomId) return;
-  const room = rooms.get(meta.roomId);
-  if (!room) return;
-  for (const peer of room) {
-    if (peer === sender || peer.readyState !== 1) continue;
-    if (sockets.get(peer)?.clientId === meta.clientId) continue;
-    sendSocket(peer, type, { ...payload, from: meta.id, name: meta.name });
-  }
-}
-
-function replaceDuplicateClient(currentSocket, roomId, clientId) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-  for (const peer of [...room]) {
-    if (peer === currentSocket) continue;
-    if (sockets.get(peer)?.clientId !== clientId) continue;
-    room.delete(peer);
-    const peerMeta = sockets.get(peer);
-    if (peerMeta) peerMeta.roomId = null;
-    peer.close(1000, "duplicate client replaced");
-  }
-}
-
-function broadcastRoster(roomId, sender, type, payload) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-  const senderMeta = sockets.get(sender);
-  for (const peer of room) {
-    if (peer === sender || peer.readyState !== 1) continue;
-    if (sockets.get(peer)?.clientId === senderMeta?.clientId) continue;
-    sendSocket(peer, type, {
-      ...payload,
-      from: senderMeta?.id,
-      name: senderMeta?.name,
-      peers: roomPeers(roomId, peer),
-    });
-  }
-}
-
-function roomPeers(roomId, exceptSocket) {
-  const room = rooms.get(roomId);
-  if (!room) return [];
-  const exceptMeta = sockets.get(exceptSocket);
-  return [...room]
-    .filter((socket) => socket !== exceptSocket)
-    .filter((socket) => sockets.get(socket)?.clientId !== exceptMeta?.clientId)
-    .map((socket) => {
-      const meta = sockets.get(socket);
-      return { id: meta.id, name: meta.name };
-    });
-}
-
-function sendSocket(socket, type, payload) {
-  if (socket.readyState !== 1) return;
-  socket.send(JSON.stringify({ type, ...payload }));
-}
-
-function sanitizeRoomId(roomId) {
-  const cleaned = String(roomId || "default").replace(/[^\w-]/g, "").slice(0, 24);
-  return cleaned || "default";
-}
-
-function sanitizeClientId(clientId) {
-  const cleaned = String(clientId || "").replace(/[^\w-]/g, "").slice(0, 80);
-  return cleaned || randomUUID();
-}
 
 function readPort() {
   const index = process.argv.indexOf("--port");
@@ -387,9 +219,15 @@ async function handleWordValidation(request, response, url) {
     }
   }
 
+<<<<<<< HEAD
   const recognized = entry.recognized || [word];
   const element = inferElement(word, recognized);
   const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
+=======
+  const power = Number.isFinite(entry.power)
+    ? entry.power
+    : Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   sendJson(response, {
     valid: true,
     word,
@@ -401,24 +239,108 @@ async function handleWordValidation(request, response, url) {
       type: entry.type,
       label: entry.label,
       power,
+<<<<<<< HEAD
       element,
       title: `${word} ${entry.label}`,
       description: `${describeUpgrade(entry.type, power)} / ${element} unlocked`,
       recognized,
+=======
+      title: entry.title || `${word} ${entry.label}`,
+      description: entry.description || describeUpgrade(entry.type, power),
+      highRoll: Boolean(entry.highRoll),
+      recognized: entry.recognized || [word],
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
     },
   });
 }
 
 function readWordMap() {
+  const entries = [];
   try {
     const data = JSON.parse(readFileSync(wordsFile, "utf8"));
-    return new Map((data.words || []).map((entry) => [normalizeKana(entry.word), entry]));
+    entries.push(...(data.words || []).filter((entry) => !isUnsafeStoredWord(entry)));
   } catch {
-    return new Map();
+    // Missing local dictionary is fine; the editable sheet can still drive upgrades.
   }
+  entries.push(...readWordUpgradeSheet());
+  return new Map(entries.map((entry) => [normalizeKana(entry.word), entry]));
+}
+
+function isUnsafeStoredWord(entry) {
+  const word = normalizeKana(entry?.word);
+  return entry?.source === "wiktionary" && [...word].length < 4;
+}
+
+function readWordUpgradeSheet() {
+  if (!existsSync(wordUpgradeSheetFile)) return [];
+  const text = readFileSync(wordUpgradeSheetFile, "utf8").replace(/^\uFEFF/, "");
+  const rows = parseCsv(text).filter((row) => row.some((cell) => cell.trim()));
+  const [headers, ...records] = rows;
+  if (!headers) return [];
+  const keys = headers.map((header) => header.trim());
+  return records
+    .map((row) => Object.fromEntries(keys.map((key, index) => [key, row[index]?.trim() || ""])))
+    .filter((row) => row.word && row.type)
+    .map((row) => ({
+      word: normalizeKana(row.word),
+      type: row.type,
+      label: row.label || upgradeLabelFromType(row.type),
+      power: row.power ? Number(row.power) : undefined,
+      title: row.title || undefined,
+      description: row.description || undefined,
+      highRoll: /^true$/i.test(row.highRoll),
+      source: row.source || "sheet",
+      recognized: [normalizeKana(row.word)],
+    }));
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n") {
+      row.push(cell.replace(/\r$/, ""));
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  row.push(cell.replace(/\r$/, ""));
+  rows.push(row);
+  return rows;
+}
+
+function upgradeLabelFromType(type) {
+  if (type === "attack") return "攻撃";
+  if (type === "mobility") return "移動";
+  if (type === "defense") return "守り";
+  if (type === "control") return "制御";
+  if (type === "life") return "生命";
+  return "闇";
 }
 
 async function fetchKuromojiWordEntry(word) {
+  if ([...word].length < 3) return null;
   const tokenizer = await getTokenizer();
   const tokens = tokenizer.tokenize(word);
   if (!isDictionaryWord(word, tokens)) return null;
@@ -475,7 +397,7 @@ function tokenMatchesWord(token, word) {
 
 function isMeaningfulDictionaryToken(token) {
   if (token.word_type !== "KNOWN") return false;
-  return !["助詞", "助動詞", "記号", "フィラー"].includes(token.pos);
+  return !["\u52a9\u8a5e", "\u52a9\u52d5\u8a5e", "\u8a18\u53f7", "\u30d5\u30a3\u30e9\u30fc"].includes(token.pos);
 }
 
 function getTokenizer() {
@@ -492,6 +414,7 @@ function getTokenizer() {
 }
 
 async function fetchExternalWordEntry(word) {
+  if ([...word].length < 4) return null;
   const url = new URL("https://ja.wiktionary.org/w/api.php");
   url.searchParams.set("action", "query");
   url.searchParams.set("format", "json");
@@ -538,12 +461,13 @@ function readWordData() {
 }
 
 function inferWordEntry(word) {
+  if (/[闇影夜]/.test(word) && word.length >= 3) return { type: "pattern", label: "闇" };
   if (word.length <= 2) return { type: "mobility", label: "移動" };
   if (/[火炎鬼刀刃雷焼肉]/.test(word)) return { type: "attack", label: "攻撃" };
   if (/[守盾石城亀]/.test(word)) return { type: "defense", label: "守り" };
   if (/[雪雨月夜雲煙]/.test(word)) return { type: "control", label: "制御" };
   if (/[花心命光薬食卵]/.test(word)) return { type: "life", label: "生命" };
-  return { type: "pattern", label: "弾幕" };
+  return { type: "life", label: "生命" };
 }
 
 function inferElement(word, recognized = []) {
@@ -567,12 +491,12 @@ function rareLetterBonus(word) {
 }
 
 function describeUpgrade(type, power) {
-  if (type === "attack") return `弾の威力 +${power}`;
-  if (type === "mobility") return "移動速度アップ。";
+  if (type === "attack") return `炎: 弾威力 +${power}。強化で重い火柱弾が増える。`;
+  if (type === "mobility") return "風: 移動速度と低速性能アップ。強化で横風の針弾が増える。";
   if (type === "defense") return "HP回復と短い無敵。";
-  if (type === "control") return "敵弾スローを付与。";
-  if (type === "life") return "最大HPアップと回復。";
-  return "拡散ショットを追加。";
+  if (type === "control") return "氷: 敵弾スローと弾圧低下。強化で大きい制圧弾が増える。";
+  if (type === "life") return "光: 最大HPアップと回復。強化で追尾する光弾が増える。";
+  return "闇: 全ボス弱点を突ける。強化で波打つ闇弾が増えるが弾圧リスクも上がる。";
 }
 
 function rankEntries(entries) {

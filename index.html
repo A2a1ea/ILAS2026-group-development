@@ -29,44 +29,24 @@
       </div>
     </section>
 
-    <section class="versus-layout">
-      <div class="play-column">
-        <span class="screen-label">You</span>
-        <section class="stage-wrap">
+    <section class="stage-wrap">
       <canvas id="game" width="540" height="800" tabindex="0" aria-label="Vertical Bullet Garden play field"></canvas>
+      <div class="buff-tray" id="buffTray" aria-live="polite" hidden></div>
       <div class="overlay" id="overlay">
         <h1>Vertical Bullet Garden</h1>
-        <p>ひらがなを1文字ずつ置いてことばを作り、強化して最終バトルへ進みます。</p>
+        <p>ひらがなを集めてことばを作り、強化を重ねてボス戦へ進みます。</p>
         <div class="menu-actions" aria-label="Mode selection">
           <button id="startButton" type="button">ループモード</button>
-          <button id="versusButton" type="button">対戦</button>
+          <label class="key-config">
+            <span>操作</span>
+            <select id="keyPreset" aria-label="キー設定">
+              <option value="standard">WASD / J / K</option>
+              <option value="touhou">東方式 / 矢印 / Z / X</option>
+            </select>
+          </label>
         </div>
-        <p class="hint">Move with WASD, hold Shift for focus movement, press J to fire, and press K to discard the last letter.</p>
+        <p class="hint" id="controlHint">WASDで移動、Shiftで低速、Jでショット、Kで文字弾、Spaceで属性切り替え。</p>
       </div>
-        </section>
-      </div>
-      <aside class="rival-column" aria-label="Opponent screen">
-        <span class="screen-label">Rival</span>
-        <canvas id="rivalGame" width="540" height="800" aria-label="Opponent play field"></canvas>
-        <div class="rival-hud">
-          <div>
-            <span class="label">Name</span>
-            <strong id="rivalName">Waiting</strong>
-          </div>
-          <div>
-            <span class="label">HP</span>
-            <strong id="rivalHp">-</strong>
-          </div>
-          <div>
-            <span class="label">Score</span>
-            <strong id="rivalScore">0</strong>
-          </div>
-          <div>
-            <span class="label">Phase</span>
-            <strong id="rivalPhase">-</strong>
-          </div>
-        </div>
-      </aside>
     </section>
 
     <section class="status-panel" aria-label="Letters, effects, and rankings">
@@ -84,6 +64,23 @@
           <li>No runs yet</li>
         </ol>
       </div>
+    </section>
+    <section class="debug-panel" id="debugPanel" aria-label="Debug controls" hidden>
+      <label>
+        <input id="debugInvincible" type="checkbox">
+        Invincible
+      </label>
+      <label>
+        Letters
+        <input id="debugLetters" type="text" maxlength="8" placeholder="ほのお">
+      </label>
+      <button id="debugGrantLetters" type="button">Add</button>
+      <button id="debugSkipPhase" type="button">Skip</button>
+      <label>
+        Boss
+        <select id="debugBossSelect"></select>
+      </label>
+      <button id="debugStartBoss" type="button">Boss</button>
     </section>
   </main>
 

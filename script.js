@@ -1,20 +1,16 @@
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
-const rivalCanvas = document.querySelector("#rivalGame");
-const rivalCtx = rivalCanvas?.getContext("2d");
 const scoreEl = document.querySelector("#score");
 const hpEl = document.querySelector("#hp");
 const timeEl = document.querySelector("#time");
 const stateEl = document.querySelector("#best");
 const letterRackEl = document.querySelector("#letterRack");
 const effectsEl = document.querySelector("#effects");
-const rivalNameEl = document.querySelector("#rivalName");
-const rivalHpEl = document.querySelector("#rivalHp");
-const rivalScoreEl = document.querySelector("#rivalScore");
-const rivalPhaseEl = document.querySelector("#rivalPhase");
+const buffTrayEl = document.querySelector("#buffTray");
 const rankingListEl = document.querySelector("#rankingList");
 const overlay = document.querySelector("#overlay");
 const startButton = document.querySelector("#startButton");
+<<<<<<< HEAD
 const versusButton = document.querySelector("#versusButton");
 
 const WIDTH = canvas.width;
@@ -66,28 +62,136 @@ const LETTER_POOL = "あああいいいううええおおかかききくくけ�
 const REWARD_LETTERS = ["ね", "こ", "そ", "ら", "は", "な", "み", "ず", "ほ", "し", "あ", "め", "か", "ぜ", "つ", "き", "ま", "も", "り"];
 const BOARD_COLS = 7;
 const BOARD_ROWS = 5;
+=======
+const keyPresetEl = document.querySelector("#keyPreset");
+const controlHintEl = document.querySelector("#controlHint");
+const debugPanelEl = document.querySelector("#debugPanel");
+const debugInvincibleEl = document.querySelector("#debugInvincible");
+const debugLettersEl = document.querySelector("#debugLetters");
+const debugGrantLettersEl = document.querySelector("#debugGrantLetters");
+const debugSkipPhaseEl = document.querySelector("#debugSkipPhase");
+const debugBossSelectEl = document.querySelector("#debugBossSelect");
+const debugStartBossEl = document.querySelector("#debugStartBoss");
+
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+const PLAYER_RADIUS = 14;
+const HIT_RADIUS = 4;
+const PHASE_DURATION = 32;
+const MAX_HP = 5;
+const MAX_ACTIVE_ENEMIES = 5;
+const FIRST_STAGE_SPAWN_DELAY = 1.95;
+const ENEMY_TURN_TIME = 4.2;
+const ENEMY_TURN_Y = HEIGHT * 0.58;
+const ENEMY_TURN_EXIT_SPEED = 150;
+const RANKING_ENDPOINT = "/api/rankings/stages";
+const WORD_ENDPOINT = "/api/words/validate";
+const LETTER_POOL = "あああいいいううええおおかかききくくけこさしすすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん";
+const REWARD_LETTERS = ["ね", "こ", "そ", "ら", "は", "な", "み", "ず", "ほ", "し", "あ", "め", "か", "ぜ", "つ", "き", "ま", "も", "り"];
+const INVENTORY_LIMIT = 8;
+const UPGRADE_TILE_LIMIT = 3;
+const BOARD_COLS = 3;
+const BOARD_ROWS = 1;
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 const BOARD_SIZE = BOARD_COLS * BOARD_ROWS;
-const VERSUS_CLIENT_ID = globalThis.crypto?.randomUUID
-  ? crypto.randomUUID()
-  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const WORD_EFFECTS = [
   { word: "fast", label: "Fast", target: "self", duration: 8 },
   { word: "slow", label: "Slow", target: "enemy", duration: 7 },
   { word: "life", label: "Life", target: "self", duration: 0 },
 ];
+<<<<<<< HEAD
 const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
   "あかり", "あさひ", "いのち", "うてん", "おおかみ", "かがみ", "かみなり", "きつね", "きぼう", "くすり", "けむり", "こころ", "さくら", "しずく", "しっぽ", "しろ", "すばやさ", "たて", "ちから", "つばさ", "てんき", "ともしび", "ながれ", "はやて", "ひまわり", "ほのお", "まもり", "みらい", "やいば", "ゆめ", "りゅう",
   "あか", "あつい", "ねつ", "なつ", "ひる", "やき", "やけ", "あめ", "かわ", "こおり", "しずく", "みなと", "かぜ", "はやて", "くも", "つばさ", "やま", "すな", "くさ", "たね", "あかり", "ひかり", "きぼう", "ゆめ",
 ]);
+=======
+const KEY_PRESETS = {
+  standard: {
+    label: "WASD / J / K",
+    hint: "WASDで移動、Shiftで低速、Jでショット、Hで文字選択、Kで選択文字弾、Spaceで属性切り替え。",
+    keys: {
+      a: "left",
+      d: "right",
+      w: "up",
+      s: "down",
+      shift: "focus",
+      j: "shoot",
+      k: "letterShot",
+      h: "letterSelect",
+    },
+  },
+  touhou: {
+    label: "東方式 / 矢印 / Z / X",
+    hint: "矢印キーで移動、Shiftで低速、Zでショット、Hで文字選択、Xで選択文字弾、Spaceで属性切り替え。",
+    keys: {
+      arrowleft: "left",
+      arrowright: "right",
+      arrowup: "up",
+      arrowdown: "down",
+      shift: "focus",
+      z: "shoot",
+      x: "letterShot",
+      a: "letterSelect",
+    },
+  },
+};
+const SHOT_ATTRIBUTES = [
+  { id: "attack", label: "炎", color: "#ff6b9a", glow: "#ff6b9a", damage: 1.22, role: "高火力" },
+  { id: "mobility", label: "風", color: "#79e7ff", glow: "#79e7ff", damage: 0.98, role: "速度" },
+  { id: "control", label: "氷", color: "#baf6ff", glow: "#79e7ff", damage: 0.92, role: "弾圧低下" },
+  { id: "life", label: "光", color: "#fff2a8", glow: "#ffd36e", damage: 0.94, role: "回復" },
+  { id: "pattern", label: "闇", color: "#c99cff", glow: "#b98cff", damage: 1.04, role: "全弱点/希少" },
+];
+const BOSS_DESIGNS = [
+  {
+    id: "ember",
+    name: "Ember Crown",
+    weak: "attack",
+    resist: "control",
+    color: "#ff6b9a",
+    accent: "#ffd36e",
+    message: "Ember Crown: 炎で王冠を砕け",
+  },
+  {
+    id: "azure",
+    name: "Azure Spiral",
+    weak: "mobility",
+    resist: "attack",
+    color: "#79e7ff",
+    accent: "#d6ff8f",
+    message: "Azure Spiral: 風で軌道を切れ",
+  },
+  {
+    id: "violet",
+    name: "Violet Script",
+    weak: "control",
+    resist: "mobility",
+    color: "#b98cff",
+    accent: "#ffd36e",
+    message: "Violet Script: 氷で呪文をほどけ",
+  },
+];
+const LOCAL_WORDS = new Set([
+  "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
+  "あかり", "あさひ", "いのち", "うてん", "おおかみ", "かがみ", "かみなり", "きつね", "きぼう", "くすり", "けむり", "こころ", "さくら", "しずく", "しっぽ", "しろ", "すばやさ", "たて", "ちから", "つばさ", "てんき", "ともしび", "ながれ", "はやて", "ひまわり", "ほのお", "まもり", "みらい", "やいば", "ゆめ", "りゅう",
+]);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 const WORD_TAGS = [
   { type: "attack", label: "攻撃", words: ["ほのお", "ひ", "やいば", "かみなり", "てき", "おに", "りゅう"] },
   { type: "mobility", label: "移動", words: ["はやて", "つばさ", "あし", "ねこ", "きつね", "とり", "はね", "すばやさ"] },
   { type: "defense", label: "守り", words: ["たて", "まもり", "いし", "かめ", "しろ"] },
   { type: "control", label: "制御", words: ["ゆき", "あめ", "くも", "けむり", "よる", "つき"] },
   { type: "life", label: "生命", words: ["いのち", "はな", "こころ", "ひかり", "さくら", "ひまわり", "くすり"] },
-  { type: "pattern", label: "弾幕", words: ["なみ", "みず", "しずく", "そら", "ほし", "にじ", "ながれ"] },
+  { type: "pattern", label: "闇", words: ["やみよ", "よる", "かげ"] },
 ];
+const HIGH_ROLL_WORDS = new Map([
+  ["ほのお", { type: "attack", label: "炎", power: 8, title: "炎上振れ ほのお", description: "炎属性の大当たり。素直に弾威力を大きく伸ばす。" }],
+  ["はやて", { type: "mobility", label: "風", power: 8, title: "風上振れ はやて", description: "風属性の大当たり。速度と低速性能を大きく伸ばして避けやすくする。" }],
+  ["こおり", { type: "control", label: "氷", power: 8, title: "氷上振れ こおり", description: "氷属性の大当たり。敵弾スローと弾圧低下で盤面を軽くする。" }],
+  ["ひかり", { type: "life", label: "光", power: 8, title: "光上振れ ひかり", description: "光属性の大当たり。最大HPと回復で長期戦に強くなる。" }],
+  ["やみよ", { type: "pattern", label: "闇", power: 8, title: "闇上振れ やみよ", description: "闇属性の大当たり。作りにくい代わりに全ボスの弱点を突ける。" }],
+]);
 [
   "あな", "あに", "あね", "あゆ", "あり", "いか", "いき", "いけ", "いす", "いと", "いね", "うし", "うた", "うで", "うに", "うま", "うら", "えだ", "えび", "えり", "おか", "おく", "おけ", "おし", "おや",
   "かぎ", "かく", "かご", "かた", "かみ", "かり", "かわ", "きく", "きり", "きん", "くき", "くに", "くり", "けさ", "けん", "こい", "こう", "こし", "こと", "こな", "この", "こり",
@@ -98,29 +202,14 @@ const WORD_TAGS = [
   "まき", "まち", "まつ", "まど", "まり", "みせ", "みち", "みみ", "むし", "むね", "むら", "めし", "めだ", "めん", "もち", "もの",
   "やま", "やみ", "やり", "ゆび", "ゆみ", "よこ", "よし", "よみ", "よめ", "らく", "らん", "りん", "るす", "れい", "れき", "ろう", "わに", "わら"
 ].forEach((word) => LOCAL_WORDS.add(word));
+for (const word of HIGH_ROLL_WORDS.keys()) LOCAL_WORDS.add(word);
 const keys = new Set();
-let debugInvincible = false;
+let keyPreset = readKeyPreset();
 
 let game = createGame("title");
 let lastFrame = 0;
-let versus = createVersusState();
-
-function createVersusState() {
-  return {
-    enabled: false,
-    socket: null,
-    roomId: "default",
-    playerId: null,
-    connected: false,
-    peers: [],
-    peerState: null,
-    started: false,
-    heartbeatTimer: null,
-    lastSent: 0,
-    lastWord: "",
-    message: "",
-  };
-}
+let debugMode = false;
+let debugCommandBuffer = "";
 
 function createGame(mode = "title") {
   return {
@@ -138,28 +227,38 @@ function createGame(mode = "title") {
     bossTimer: 0,
     kills: 0,
     hits: 0,
+    riskBulletPressure: 0,
+    shotAttributeIndex: 0,
+    debugInvincible: false,
+    debugBossId: null,
     scroll: 0,
     flash: 0,
     message: mode === "title" ? "ひらがなを集めて、ことばで強化しよう。" : "",
     messageTimer: 0,
     inventory: [],
+    selectedLetterIndex: null,
     upgradeBoard: {
       cells: Array(BOARD_SIZE).fill(null),
       activeIndex: null,
       activeCellIndex: null,
       foundWords: [],
       pendingUpgrades: [],
-      message: "Choose any square for your first letter.",
+      choiceOptions: [],
+      choosing: false,
+      message: "Place up to three letters. Make one compact word.",
       busy: false,
     },
     upgrades: [],
+<<<<<<< HEAD
     unlockedElements: ["neutral"],
     activeElement: "neutral",
+=======
+    buffIcons: [],
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
     startingSlow: 0,
     effects: {
       fast: 0,
       slow: 0,
-      jam: 0,
     },
     player: {
       x: WIDTH / 2,
@@ -173,7 +272,15 @@ function createGame(mode = "title") {
       fireRateMultiplier: 1,
       spread: 0,
       bulletDamageBonus: 0,
+      attributeMods: {
+        attack: 0,
+        mobility: 0,
+        control: 0,
+        life: 0,
+        pattern: 0,
+      },
     },
+<<<<<<< HEAD
     playerBullets: [],
     enemyBullets: [],
     enemies: [],
@@ -529,6 +636,60 @@ function stopVersus() {
   if (versusButton) versusButton.textContent = "対戦";
 }
 
+=======
+    playerBullets: [],
+    enemyBullets: [],
+    enemies: [],
+    particles: [],
+    letters: [],
+    boss: null,
+  };
+}
+
+function startGame() {
+  game = createGame("phase");
+  lastFrame = performance.now();
+  overlay.hidden = true;
+  canvas.focus();
+  setMessage("Phase 1: collect letters for your first upgrade");
+  requestAnimationFrame(loop);
+}
+
+function loop(now) {
+  const dt = Math.min((now - lastFrame) / 1000, 0.033);
+  lastFrame = now;
+  update(dt);
+  draw();
+  if (["phase", "final", "upgrade", "pause"].includes(game.mode)) requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  if (game.mode === "pause") return;
+  if (game.mode === "upgrade") {
+    updateParticles(dt);
+    updateHud();
+    return;
+  }
+  game.time += dt;
+  game.phaseTime += dt;
+  game.stageTime = game.phaseTime;
+  game.scroll += dt * (game.mode === "final" ? 45 : 110);
+  game.flash = Math.max(0, game.flash - dt);
+  game.messageTimer = Math.max(0, game.messageTimer - dt);
+  updateEffects(dt);
+  updatePlayer(dt);
+  updatePlayerBullets(dt);
+  updateEnemies(dt);
+  updateEnemyBullets(dt);
+  updateLetterSpawner(dt);
+  updateLetters(dt);
+  updateParticles(dt);
+  updateStage(dt);
+  checkCollisions();
+  updateHud();
+}
+
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function updateStage(dt) {
   if (game.mode === "final") {
     updateBoss(dt);
@@ -558,11 +719,12 @@ function updatePlayer(dt) {
   const p = game.player;
   let dx = 0;
   let dy = 0;
-  if (keys.has("a")) dx -= 1;
-  if (keys.has("d")) dx += 1;
-  if (keys.has("w")) dy -= 1;
-  if (keys.has("s")) dy += 1;
+  if (isActionPressed("left")) dx -= 1;
+  if (isActionPressed("right")) dx += 1;
+  if (isActionPressed("up")) dy -= 1;
+  if (isActionPressed("down")) dy += 1;
   const speedBoost = game.effects.fast > 0 ? 1.45 : 1;
+<<<<<<< HEAD
   const jamScale = game.effects.jam > 0 ? 0.68 : 1;
   const speed = (keys.has("shift") ? p.slowSpeed : p.speed) * speedBoost * inventoryMoveScale() * jamScale;
   const len = Math.hypot(dx, dy) || 1;
@@ -581,6 +743,20 @@ function updatePlayer(dt) {
       game.playerBullets.push({ x: p.x, y: p.y - 18, vx: 120, vy: -650, radius: 4, damage: Math.max(6, damage - 2), type: "normal", element });
     }
     p.shotCooldown = Math.max(0.045, 0.09 * p.fireRateMultiplier);
+=======
+  const speed = (isActionPressed("focus") ? p.slowSpeed : p.speed) * speedBoost * inventoryMoveScale();
+  const len = Math.hypot(dx, dy) || 1;
+  p.x = clamp(p.x + (dx / len) * speed * dt, PLAYER_RADIUS, WIDTH - PLAYER_RADIUS);
+  p.y = clamp(p.y + (dy / len) * speed * dt, 78, HEIGHT - PLAYER_RADIUS);
+  p.invuln = Math.max(0, p.invuln - dt);
+  p.shotCooldown = Math.max(0, p.shotCooldown - dt);
+
+  if (isActionPressed("shoot") && p.shotCooldown <= 0) {
+    const attribute = currentShotAttribute();
+    const damage = (8 + p.bulletDamageBonus) * attribute.damage;
+    fireAttributeShots(attribute, damage);
+    p.shotCooldown = Math.max(attribute.cooldown || 0.045, (attribute.fireDelay || 0.09) * p.fireRateMultiplier);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   }
 }
 
@@ -592,13 +768,123 @@ function updateEffects(dt) {
 
 function updatePlayerBullets(dt) {
   for (const b of game.playerBullets) {
+    b.age = (b.age || 0) + dt;
+    if (b.motion === "wave") {
+      b.x += Math.sin(b.age * b.waveSpeed + b.wavePhase) * b.waveAmp * dt;
+    } else if (b.motion === "crosswind") {
+      b.x += Math.cos(b.age * 7 + b.wavePhase) * (b.driftAmp || 120) * dt;
+    } else if (b.motion === "seeker" && game.boss) {
+      const dx = game.boss.x - b.x;
+      b.vx += clamp(dx * 0.9, -90, 90) * dt;
+    }
     b.x += b.vx * dt;
     b.y += b.vy * dt;
   }
-  game.playerBullets = game.playerBullets.filter((b) => b.y > -20);
+  game.playerBullets = game.playerBullets.filter((b) => b.y > -30 && b.x > -40 && b.x < WIDTH + 40);
+}
+
+function currentShotAttribute() {
+  return SHOT_ATTRIBUTES[game.shotAttributeIndex] || SHOT_ATTRIBUTES[0];
+}
+
+function fireAttributeShots(attribute, damage) {
+  const p = game.player;
+  const spread = Math.min(3, p.spread);
+  const mod = attributeModLevel(attribute.id);
+  if (attribute.id === "attack") {
+    pushPlayerShot(p.x - 5, p.y - 18, 0, -760, damage * 1.16, attribute, { radius: 5, shape: "flame" });
+    pushPlayerShot(p.x + 5, p.y - 18, 0, -760, damage * 1.16, attribute, { radius: 5, shape: "flame" });
+    if (spread > 0) pushPlayerShot(p.x, p.y - 20, 0, -700, damage * 0.9, attribute, { radius: 7, shape: "flame" });
+    if (mod >= 1) pushPlayerShot(p.x, p.y - 26, 0, -610, damage * (1.05 + mod * 0.08), attribute, { radius: 8 + mod, shape: "flame" });
+    if (mod >= 3) {
+      pushPlayerShot(p.x - 18, p.y - 12, -45, -660, damage * 0.82, attribute, { radius: 5, shape: "flame" });
+      pushPlayerShot(p.x + 18, p.y - 12, 45, -660, damage * 0.82, attribute, { radius: 5, shape: "flame" });
+    }
+  } else if (attribute.id === "mobility") {
+    pushPlayerShot(p.x, p.y - 18, 0, -900, damage, attribute, { radius: 3.5, shape: "needle" });
+    pushPlayerShot(p.x - 8, p.y - 14, -150, -820, damage * 0.72, attribute, { radius: 3, shape: "needle" });
+    pushPlayerShot(p.x + 8, p.y - 14, 150, -820, damage * 0.72, attribute, { radius: 3, shape: "needle" });
+    if (spread > 0) {
+      pushPlayerShot(p.x - 13, p.y - 10, -250, -760, damage * 0.55, attribute, { radius: 3, shape: "needle" });
+      pushPlayerShot(p.x + 13, p.y - 10, 250, -760, damage * 0.55, attribute, { radius: 3, shape: "needle" });
+    }
+    if (mod >= 1) {
+      pushPlayerShot(p.x - 24, p.y - 4, 115 + mod * 12, -760, damage * 0.58, attribute, { radius: 3, shape: "needle", motion: "crosswind", driftAmp: 160 + mod * 25 });
+      pushPlayerShot(p.x + 24, p.y - 4, -115 - mod * 12, -760, damage * 0.58, attribute, { radius: 3, shape: "needle", motion: "crosswind", driftAmp: -160 - mod * 25 });
+    }
+  } else if (attribute.id === "control") {
+    pushPlayerShot(p.x, p.y - 18, 0, -560, damage * 1.28, attribute, { radius: 8, shape: "orb" });
+    if (spread > 0) {
+      pushPlayerShot(p.x - 14, p.y - 10, -70, -520, damage * 0.72, attribute, { radius: 6, shape: "orb" });
+      pushPlayerShot(p.x + 14, p.y - 10, 70, -520, damage * 0.72, attribute, { radius: 6, shape: "orb" });
+    }
+    if (mod >= 1) {
+      pushPlayerShot(p.x - 18, p.y - 18, -35, -480, damage * 0.72, attribute, { radius: 7 + mod * 0.8, shape: "orb" });
+      pushPlayerShot(p.x + 18, p.y - 18, 35, -480, damage * 0.72, attribute, { radius: 7 + mod * 0.8, shape: "orb" });
+    }
+    if (mod >= 3) pushPlayerShot(p.x, p.y - 4, 0, -390, damage * 0.8, attribute, { radius: 11, shape: "orb", motion: "seeker" });
+  } else if (attribute.id === "life") {
+    pushPlayerShot(p.x - 12, p.y - 16, -70, -680, damage * 0.82, attribute, { radius: 4.5, shape: "spark" });
+    pushPlayerShot(p.x, p.y - 20, 0, -720, damage, attribute, { radius: 4.5, shape: "spark" });
+    pushPlayerShot(p.x + 12, p.y - 16, 70, -680, damage * 0.82, attribute, { radius: 4.5, shape: "spark" });
+    if (spread > 0) pushPlayerShot(p.x, p.y - 6, 0, -610, damage * 0.65, attribute, { radius: 6, shape: "spark", motion: "seeker" });
+    if (mod >= 1) {
+      pushPlayerShot(p.x - 22, p.y - 8, -35, -620, damage * 0.58, attribute, { radius: 5.5, shape: "spark", motion: "seeker" });
+      pushPlayerShot(p.x + 22, p.y - 8, 35, -620, damage * 0.58, attribute, { radius: 5.5, shape: "spark", motion: "seeker" });
+    }
+  } else {
+    pushPlayerShot(p.x - 9, p.y - 18, -55, -640, damage, attribute, { radius: 4.5, shape: "dark", motion: "wave", waveAmp: 210, waveSpeed: 9, wavePhase: 0 });
+    pushPlayerShot(p.x + 9, p.y - 18, 55, -640, damage, attribute, { radius: 4.5, shape: "dark", motion: "wave", waveAmp: -210, waveSpeed: 9, wavePhase: Math.PI });
+    if (spread > 0) pushPlayerShot(p.x, p.y - 20, 0, -600, damage * 0.78, attribute, { radius: 7, shape: "dark", motion: "wave", waveAmp: 160, waveSpeed: 12, wavePhase: Math.PI / 2 });
+    if (mod >= 1) {
+      const amp = 240 + mod * 18;
+      pushPlayerShot(p.x - 18, p.y - 8, -25, -560, damage * 0.68, attribute, { radius: 5, shape: "dark", motion: "wave", waveAmp: amp, waveSpeed: 13, wavePhase: game.time });
+      pushPlayerShot(p.x + 18, p.y - 8, 25, -560, damage * 0.68, attribute, { radius: 5, shape: "dark", motion: "wave", waveAmp: -amp, waveSpeed: 13, wavePhase: game.time + Math.PI });
+    }
+    if (mod >= 3) pushPlayerShot(p.x, p.y - 28, 0, -520, damage * 0.82, attribute, { radius: 9, shape: "dark", motion: "wave", waveAmp: 120, waveSpeed: 18, wavePhase: game.time * 2 });
+  }
+}
+
+function attributeModLevel(type) {
+  return Math.min(5, game.player.attributeMods?.[type] || 0);
+}
+
+function pushPlayerShot(x, y, vx, vy, damage, attribute, options = {}) {
+  game.playerBullets.push(createPlayerShot(x, y, vx, vy, damage, attribute, options));
+}
+
+function createPlayerShot(x, y, vx, vy, damage, attribute, options = {}) {
+  return {
+    x,
+    y,
+    vx,
+    vy,
+    radius: options.radius || 4,
+    damage,
+    type: "normal",
+    attribute: attribute.id,
+    color: attribute.color,
+    glow: attribute.glow,
+    shape: options.shape || attribute.id,
+    motion: options.motion || "straight",
+    waveAmp: options.waveAmp || 0,
+    waveSpeed: options.waveSpeed || 0,
+    wavePhase: options.wavePhase || 0,
+    driftAmp: options.driftAmp || 0,
+    age: 0,
+  };
+}
+
+function cycleShotAttribute() {
+  if (!["phase", "final"].includes(game.mode)) return;
+  game.shotAttributeIndex = (game.shotAttributeIndex + 1) % SHOT_ATTRIBUTES.length;
+  const attribute = currentShotAttribute();
+  setMessage(`属性: ${attribute.label}`);
+  updateHud();
 }
 
 function spawnEnemy() {
+<<<<<<< HEAD
   const type = chooseEnemyType();
   const x = 50 + Math.random() * (WIDTH - 100);
   const hpScale = 0.75 + (game.phase - 1) * 0.24;
@@ -695,6 +981,95 @@ function enemyShootDelay(type, density) {
   return Math.max(0.5, baseTimer - density * 0.08);
 }
 
+=======
+  const type = chooseEnemyType();
+  const x = 50 + Math.random() * (WIDTH - 100);
+  const hpScale = 0.75 + (game.phase - 1) * 0.24;
+  const speedScale = 0.72 + (game.phase - 1) * 0.12;
+  const turnTimer = ENEMY_TURN_TIME + Math.random() * 0.9;
+  if (type === "A") {
+    game.enemies.push({ type: "A", x, y: -24, vx: 0, vy: 96 * speedScale, turnTimer, turning: false, hp: Math.round(22 * hpScale), radius: 18, score: 100, shootTimer: 1.35 });
+  } else if (type === "B") {
+    game.enemies.push({ type: "B", x, y: -24, baseX: x, vx: 0, vy: 72 * speedScale, turnTimer, turning: false, hp: Math.round(35 * hpScale), radius: 21, score: 160, shootTimer: 1.15, wave: Math.random() * 8 });
+  } else if (type === "C") {
+    game.enemies.push({ type: "C", x, y: -30, vx: 0, vy: 125 * speedScale, turnTimer, turning: false, hp: Math.round(55 * hpScale), radius: 24, score: 240, shootTimer: 1.35, hold: 2.6 });
+  } else {
+    game.enemies.push({ type: "D", x, y: -28, baseX: x, vx: 0, vy: 58 * speedScale, turnTimer, turning: false, hp: Math.round(3 + game.phase), radius: 23, score: 280, shootTimer: 1.6, wave: Math.random() * 8, letterShield: true });
+  }
+}
+
+function enemySpawnDelay() {
+  const stagePressure = Math.min(0.9, (game.phase - 1) * 0.24);
+  const timePressure = Math.min(0.35, game.phaseTime * 0.007);
+  return Math.max(0.48, FIRST_STAGE_SPAWN_DELAY - stagePressure - timePressure);
+}
+
+function chooseEnemyType() {
+  if (game.phase <= 1) return "A";
+  const letterChance = Math.min(0.22, 0.08 + (game.phase - 2) * 0.05);
+  const purpleChance = game.phase >= 3 ? 0.22 : 0;
+  const yellowChance = Math.min(0.54, (game.phase - 1) * 0.24);
+  const roll = Math.random();
+  if (roll < letterChance) return "D";
+  const adjustedRoll = roll - letterChance;
+  if (adjustedRoll < purpleChance) return "C";
+  if (adjustedRoll < purpleChance + yellowChance) return "B";
+  return "A";
+}
+
+function updateEnemies(dt) {
+  const slowScale = enemySlowScale();
+  const densityScale = stageDensityScale();
+  for (const e of game.enemies) {
+    e.turnTimer -= dt * slowScale;
+    if (!e.turning && (e.turnTimer <= 0 || e.y >= ENEMY_TURN_Y)) {
+      e.turning = true;
+      e.vy = -Math.max(Math.abs(e.vy), ENEMY_TURN_EXIT_SPEED);
+      e.hold = 0;
+    }
+
+    if (e.type === "B" || e.type === "D") {
+      e.wave += dt * 4.2 * slowScale;
+      e.x = clamp(e.baseX + Math.sin(e.wave) * (e.type === "D" ? 44 : 60), e.radius, WIDTH - e.radius);
+    }
+
+    if (!e.turning && e.type === "C" && e.y > 145 && e.hold > 0) {
+      e.hold -= dt;
+    } else {
+      e.y += e.vy * dt * slowScale;
+    }
+
+    e.shootTimer -= dt;
+    if (e.shootTimer <= 0) {
+      fireEnemyPattern(e);
+      e.shootTimer = enemyShootDelay(e.type, densityScale);
+    }
+  }
+  game.enemies = game.enemies.filter((e) => e.y > -80 && e.y < HEIGHT + 50 && e.hp > 0);
+}
+
+function fireEnemyPattern(enemy) {
+  const density = stageDensityScale();
+  if (enemy.type === "A") {
+    fireAimed(enemy.x, enemy.y, 145 + density * 6, 7);
+    if (density >= 2) {
+      fireBullet(enemy.x, enemy.y, -45, 175, 7, "#ff6b9a");
+      fireBullet(enemy.x, enemy.y, 45, 175, 7, "#ff6b9a");
+    }
+  } else if (enemy.type === "B") {
+    const spread = Math.min(2 + density, 6);
+    for (let i = -spread; i <= spread; i += 1) fireBullet(enemy.x, enemy.y, i * 28, 190, 7, "#ff8db3");
+  } else {
+    fireCircle(enemy.x, enemy.y, 10 + density * 2, 140 + density * 8, "#ffcf6f");
+  }
+}
+
+function enemyShootDelay(type, density) {
+  const baseTimer = type === "C" ? 1.2 : type === "B" ? 1.45 : 1.75;
+  return Math.max(0.5, baseTimer - density * 0.08);
+}
+
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function updateBoss(dt) {
   const boss = game.boss;
   if (!boss) return;
@@ -706,34 +1081,63 @@ function updateBoss(dt) {
   if (boss.attackTimer <= 0 && boss.y >= 104) {
     const density = stageDensityScale();
     boss.phase = boss.hp < boss.maxHp * 0.35 ? 3 : (boss.phase + 1) % 3;
-    if (boss.phase === 0) fireFan(boss.x, boss.y + 24, Math.PI / 2, 7 + density * 2, 0.75, 165 + density * 10, "#ff7da8");
-    if (boss.phase === 1) fireCircle(boss.x, boss.y + 10, 14 + density * 3, 118 + density * 8, "#ffd36e");
-    if (boss.phase === 2) {
-      const aimedCount = 3 + Math.min(5, density);
-      for (let i = 0; i < aimedCount; i += 1) fireAimed(boss.x + (i - (aimedCount - 1) / 2) * 24, boss.y + 30, 185 + density * 8, 7);
-    }
-    if (boss.phase === 3) {
-      fireCircle(boss.x, boss.y + 10, 18 + density * 3, 145 + density * 8, "#ff5b93", boss.entry * 0.9);
-      fireFan(boss.x, boss.y + 28, Math.PI / 2, 9 + density * 2, 0.95, 195 + density * 8, "#79e7ff");
-    }
+    fireBossPattern(boss, density);
     boss.attackTimer = Math.max(0.58, (boss.phase === 3 ? 0.9 : 1.25) - density * 0.05);
   }
 
-  boss.x = WIDTH / 2 + Math.sin(game.time * 1.2 * slowScale) * 92;
+  const movement = boss.design.id === "azure" ? 128 : boss.design.id === "violet" ? 74 : 92;
+  const rate = boss.design.id === "ember" ? 1.05 : boss.design.id === "azure" ? 1.55 : 0.9;
+  boss.x = WIDTH / 2 + Math.sin(game.time * rate * slowScale) * movement;
 }
 
+<<<<<<< HEAD
 function fireAimed(x, y, speed, radius, element = currentEnemyElement()) {
   const angle = Math.atan2(game.player.y - y, game.player.x - x);
   fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, radius, "#ff6b9a", element);
 }
+=======
+function fireBossPattern(boss, density) {
+  if (boss.design.id === "ember") {
+    if (boss.phase === 0) fireFan(boss.x, boss.y + 24, Math.PI / 2, 9 + density * 2, 0.85, 178 + density * 10, boss.design.color);
+    if (boss.phase === 1) fireCircle(boss.x, boss.y + 10, 12 + density * 3, 126 + density * 8, boss.design.accent, boss.entry * 0.6);
+    if (boss.phase === 2) fireFan(boss.x, boss.y + 28, Math.PI / 2, 5 + density, 0.36, 245 + density * 8, "#ff9f55");
+    if (boss.phase === 3) {
+      fireCircle(boss.x, boss.y + 10, 20 + density * 3, 150 + density * 8, boss.design.color, boss.entry);
+      fireFan(boss.x, boss.y + 28, Math.PI / 2, 11 + density * 2, 1.05, 210 + density * 8, boss.design.accent);
+    }
+    return;
+  }
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 
-function fireFan(x, y, centerAngle, count, spread, speed, color) {
-  const start = centerAngle - spread / 2;
-  for (let i = 0; i < count; i += 1) {
-    const angle = start + (spread * i) / Math.max(1, count - 1);
-    fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 6, color);
+  if (boss.design.id === "azure") {
+    if (boss.phase === 0) fireCircle(boss.x, boss.y + 10, 16 + density * 3, 128 + density * 7, boss.design.color, boss.entry * 1.35);
+    if (boss.phase === 1) fireCircle(boss.x, boss.y + 10, 16 + density * 3, 128 + density * 7, boss.design.accent, -boss.entry * 1.1);
+    if (boss.phase === 2) {
+      const aimedCount = 4 + Math.min(6, density);
+      for (let i = 0; i < aimedCount; i += 1) fireAimed(boss.x + (i - (aimedCount - 1) / 2) * 22, boss.y + 30, 205 + density * 8, 6);
+    }
+    if (boss.phase === 3) {
+      fireCircle(boss.x, boss.y + 10, 24 + density * 3, 162 + density * 8, boss.design.color, boss.entry * 1.6);
+      fireCircle(boss.x, boss.y + 10, 12 + density * 2, 118 + density * 6, boss.design.accent, -boss.entry * 1.35);
+    }
+    return;
+  }
+
+  if (boss.phase === 0) {
+    const count = 6 + Math.min(7, density);
+    for (let i = 0; i < count; i += 1) {
+      const x = 42 + (i / Math.max(1, count - 1)) * (WIDTH - 84);
+      fireBullet(x, boss.y + 18, Math.sin(boss.entry + i) * 38, 150 + density * 8, 6, boss.design.color);
+    }
+  }
+  if (boss.phase === 1) fireFan(boss.x, boss.y + 28, Math.PI / 2, 13 + density * 2, 1.2, 158 + density * 8, boss.design.accent);
+  if (boss.phase === 2) fireCircle(boss.x, boss.y + 10, 18 + density * 3, 112 + density * 8, boss.design.color, boss.entry * 0.72);
+  if (boss.phase === 3) {
+    fireFan(boss.x, boss.y + 28, Math.PI / 2, 15 + density * 2, 1.35, 195 + density * 8, boss.design.color);
+    fireCircle(boss.x, boss.y + 10, 16 + density * 2, 138 + density * 8, boss.design.accent, boss.entry * 1.2);
   }
 }
+<<<<<<< HEAD
 
 function fireCircle(x, y, count, speed, color, offset = 0, element = currentEnemyElement()) {
   for (let i = 0; i < count; i += 1) {
@@ -763,16 +1167,56 @@ function enemySlowScale() {
   return game.effects.slow > 0 ? 0.55 : 1;
 }
 
+=======
+
+function fireAimed(x, y, speed, radius) {
+  const angle = Math.atan2(game.player.y - y, game.player.x - x);
+  fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, radius, "#ff6b9a");
+}
+
+function fireFan(x, y, centerAngle, count, spread, speed, color) {
+  const start = centerAngle - spread / 2;
+  for (let i = 0; i < count; i += 1) {
+    const angle = start + (spread * i) / Math.max(1, count - 1);
+    fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 6, color);
+  }
+}
+
+function fireCircle(x, y, count, speed, color, offset = 0) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = offset + (Math.PI * 2 * i) / count;
+    fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 6, color);
+  }
+}
+
+function fireBullet(x, y, vx, vy, radius, color) {
+  game.enemyBullets.push({ x, y, vx, vy, radius, color });
+}
+
+function updateEnemyBullets(dt) {
+  const slowScale = enemySlowScale() * inventoryBulletPressure();
+  for (const b of game.enemyBullets) {
+    b.x += b.vx * dt * slowScale;
+    b.y += b.vy * dt * slowScale;
+  }
+  game.enemyBullets = game.enemyBullets.filter((b) => b.x > -40 && b.x < WIDTH + 40 && b.y > -50 && b.y < HEIGHT + 50);
+}
+
+function enemySlowScale() {
+  return game.effects.slow > 0 ? 0.55 : 1;
+}
+
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function inventoryRisk() {
-  return Math.max(0, game.inventory.length - 8);
+  return Math.max(0, game.inventory.length - 4);
 }
 
 function inventoryMoveScale() {
-  return Math.max(0.72, 1 - inventoryRisk() * 0.018);
+  return Math.max(0.66, 1 - inventoryRisk() * 0.045);
 }
 
 function inventoryBulletPressure() {
-  return 1 + Math.max(0, game.inventory.length - 14) * 0.018;
+  return 1 + inventoryRisk() * 0.055 + (game.riskBulletPressure || 0);
 }
 
 function stageDensityScale() {
@@ -802,22 +1246,30 @@ function updateLetters(dt) {
 
 function collectLetter(letter) {
   if (!["phase", "final"].includes(game.mode)) return;
+  if (game.inventory.length >= INVENTORY_LIMIT) {
+    game.riskBulletPressure = (game.riskBulletPressure || 0) + 0.04;
+    game.score += 5;
+    burst(letter.x, letter.y, "#ff6b9a", 10);
+    setMessage(`Rack full (${INVENTORY_LIMIT}). Fire K/X to make space.`);
+    return;
+  }
   game.inventory.push(letter.char);
-  if (game.inventory.length > 24) game.inventory.shift();
+  if (game.selectedLetterIndex == null) game.selectedLetterIndex = game.inventory.length - 1;
   game.score += 25;
   burst(letter.x, letter.y, "#d6ff8f", 8);
-  if (game.inventory.length === 9) setMessage("文字が重くなってきた。Kで捨てられる。");
-  if (game.inventory.length === 15) setMessage("持ちすぎで敵弾が速くなる。");
+  if (game.inventory.length === INVENTORY_LIMIT) setMessage("Rack full. Choose letters carefully.");
 }
-
 function fireStoredLetter() {
   if (!["phase", "final"].includes(game.mode)) return;
-  const item = game.inventory.pop();
+  const index = selectedLetterIndex();
+  const item = index == null ? null : game.inventory.splice(index, 1)[0];
   if (!item) {
     setMessage("No letter to discard");
     return;
   }
+  normalizeSelectedLetterIndex();
   const char = inventoryChar(item);
+<<<<<<< HEAD
   game.playerBullets.push({
     type: "letter",
     char,
@@ -829,8 +1281,50 @@ function fireStoredLetter() {
     radius: isPoweredLetter(item) ? 16 : 13,
     damage: isPoweredLetter(item) ? 12 : 8,
     element: game.activeElement,
+=======
+  game.playerBullets.push({
+    type: "letter",
+    char,
+    powered: isPoweredLetter(item),
+    x: game.player.x,
+    y: game.player.y - 22,
+    vx: 0,
+    vy: -560,
+    radius: isPoweredLetter(item) ? 16 : 13,
+    damage: isPoweredLetter(item) ? 12 : 8,
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   });
   setMessage(`Discarded ${char}`);
+}
+
+function cycleSelectedLetter() {
+  if (!game.inventory.length) {
+    game.selectedLetterIndex = null;
+    setMessage("No letters to select");
+    updateHud();
+    return;
+  }
+  game.selectedLetterIndex = game.selectedLetterIndex == null
+    ? 0
+    : (game.selectedLetterIndex + 1) % game.inventory.length;
+  const char = inventoryChar(game.inventory[game.selectedLetterIndex]);
+  setMessage(`Selected ${char}`);
+  updateHud();
+}
+
+function selectedLetterIndex() {
+  normalizeSelectedLetterIndex();
+  if (!game.inventory.length) return null;
+  return game.selectedLetterIndex == null ? game.inventory.length - 1 : game.selectedLetterIndex;
+}
+
+function normalizeSelectedLetterIndex() {
+  if (!game.inventory.length) {
+    game.selectedLetterIndex = null;
+    return;
+  }
+  if (game.selectedLetterIndex == null) return;
+  game.selectedLetterIndex = clamp(game.selectedLetterIndex, 0, game.inventory.length - 1);
 }
 
 function craftAvailableWords() {
@@ -912,7 +1406,9 @@ function enterUpgrade() {
     activeCellIndex: null,
     foundWords: [],
     pendingUpgrades: [],
-    message: "Choose any square for your first letter.",
+    choiceOptions: [],
+    choosing: false,
+    message: "Place up to three letters. Make one compact word.",
     busy: false,
   };
   showUpgradeOverlay();
@@ -922,7 +1418,7 @@ function enterUpgrade() {
 function showUpgradeOverlay() {
   overlay.hidden = false;
   overlay.querySelector("h1").textContent = `Upgrade ${game.phase}`;
-  overlay.querySelector("p").textContent = "Place one letter at a time. Words made by that move become upgrades.";
+  overlay.querySelector("p").textContent = "Place up to three letters. A short word becomes one upgrade choice.";
   startButton.textContent = "Confirm Words";
   renderUpgradeBoard();
 }
@@ -938,7 +1434,7 @@ function renderUpgradeBoard() {
   summary.className = "word-slots";
   summary.textContent = game.upgradeBoard.foundWords.length
     ? game.upgradeBoard.foundWords.map((item) => item.word.toUpperCase()).join(" / ")
-    : "MAKE WORDS";
+    : "3 LETTERS";
   panel.append(summary);
 
   const grid = document.createElement("span");
@@ -959,21 +1455,25 @@ function renderUpgradeBoard() {
 
   const rack = document.createElement("span");
   rack.className = "letter-bank";
-  if (game.inventory.length) {
+  if (game.upgradeBoard.choosing) {
+    rack.append(renderUpgradeChoices());
+  } else if (game.inventory.length) {
     game.inventory.forEach((item, index) => {
       const letter = document.createElement("button");
       letter.type = "button";
       const used = isInventoryIndexOnBoard(index);
       const active = game.upgradeBoard.activeIndex === index;
-      letter.className = `letter-tile${active ? " active" : ""}${isPoweredLetter(item) ? " powered" : ""}`;
+      const selected = game.selectedLetterIndex === index;
+      letter.className = `letter-tile${active ? " active" : ""}${selected ? " selected" : ""}${isPoweredLetter(item) ? " powered" : ""}`;
       letter.textContent = inventoryChar(item);
       letter.disabled = game.upgradeBoard.busy || used;
       letter.addEventListener("click", () => {
         if (game.upgradeBoard.activeCellIndex == null) {
           game.upgradeBoard.activeIndex = game.upgradeBoard.activeIndex === index ? null : index;
           game.upgradeBoard.message = game.upgradeBoard.activeIndex == null
-            ? "Choose any square for your first letter."
+            ? "Place up to three letters. Make one compact word."
             : "Now choose any + square.";
+<<<<<<< HEAD
           renderUpgradeBoard();
           return;
         }
@@ -987,6 +1487,21 @@ function renderUpgradeBoard() {
     empty.textContent = "No letters collected. Confirm will continue without an upgrade.";
     rack.append(empty);
   }
+=======
+          renderUpgradeBoard();
+          return;
+        }
+        placeLetterFromRack(index);
+      });
+      rack.append(letter);
+    });
+  } else {
+    const empty = document.createElement("span");
+    empty.className = "board-note";
+    empty.textContent = "No letters collected. You need a valid 3-letter word for an upgrade.";
+    rack.append(empty);
+  }
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   panel.append(rack);
 
   const actions = document.createElement("span");
@@ -994,7 +1509,7 @@ function renderUpgradeBoard() {
   const undo = document.createElement("button");
   undo.type = "button";
   undo.textContent = "Remove Last";
-  undo.disabled = game.upgradeBoard.busy || !getPlacedCells().length;
+  undo.disabled = game.upgradeBoard.busy || game.upgradeBoard.choosing || !getPlacedCells().length;
   undo.addEventListener("click", () => {
     const placed = getPlacedCells();
     const last = placed[placed.length - 1];
@@ -1008,14 +1523,16 @@ function renderUpgradeBoard() {
   const clear = document.createElement("button");
   clear.type = "button";
   clear.textContent = "Clear";
-  clear.disabled = game.upgradeBoard.busy || !getPlacedCells().length;
+  clear.disabled = game.upgradeBoard.busy || game.upgradeBoard.choosing || !getPlacedCells().length;
   clear.addEventListener("click", () => {
     game.upgradeBoard.cells = Array(BOARD_SIZE).fill(null);
     game.upgradeBoard.activeIndex = null;
     game.upgradeBoard.activeCellIndex = null;
     game.upgradeBoard.foundWords = [];
     game.upgradeBoard.pendingUpgrades = [];
-    game.upgradeBoard.message = "Choose any square for your first letter.";
+    game.upgradeBoard.choiceOptions = [];
+    game.upgradeBoard.choosing = false;
+    game.upgradeBoard.message = "Place up to three letters. Make one compact word.";
     renderUpgradeBoard();
   });
   actions.append(undo, clear);
@@ -1028,16 +1545,51 @@ function renderUpgradeBoard() {
   hint.append(panel);
 }
 
+function renderUpgradeChoices() {
+  const choices = document.createElement("span");
+  choices.className = "upgrade-choices";
+  game.upgradeBoard.choiceOptions.forEach((choice, index) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `upgrade-card upgrade-${choice.upgrade.type || "pattern"}${choice.risk ? " risky" : ""}`;
+    card.addEventListener("click", () => chooseUpgradeReward(index));
+
+    const title = document.createElement("strong");
+    title.textContent = choice.name;
+    const word = document.createElement("span");
+    word.textContent = `${choice.upgrade.word} / ${choice.upgrade.label}+${choice.upgrade.power}`;
+    const detail = document.createElement("small");
+    detail.textContent = choice.detail;
+    card.append(title, word, detail);
+    if (choice.risk) {
+      const risk = document.createElement("small");
+      risk.className = "risk-text";
+      risk.textContent = choice.risk.label;
+      card.append(risk);
+    }
+    choices.append(card);
+  });
+  return choices;
+}
+
 async function forgeSelectedWord() {
   if (game.mode !== "upgrade" || game.upgradeBoard.busy) return;
+  if (game.upgradeBoard.choosing) return;
   const validUpgrades = game.upgradeBoard.pendingUpgrades;
   if (!validUpgrades.length) {
+<<<<<<< HEAD
     advanceAfterUpgrade();
+=======
+    game.upgradeBoard.message = "Make a valid 3-letter word before choosing an upgrade.";
+    renderUpgradeBoard();
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
     return;
   }
-  consumePlacedLetters();
-  for (const upgrade of validUpgrades.slice(0, 3)) applyDynamicUpgrade(upgrade);
-  advanceAfterUpgrade();
+  const seedUpgrade = validUpgrades[validUpgrades.length - 1];
+  game.upgradeBoard.choiceOptions = buildUpgradeChoices(seedUpgrade);
+  game.upgradeBoard.choosing = true;
+  game.upgradeBoard.message = "Choose one upgrade reward.";
+  renderUpgradeBoard();
 }
 
 function advanceAfterUpgrade() {
@@ -1046,8 +1598,18 @@ function advanceAfterUpgrade() {
   startNextPhase();
 }
 
+function chooseUpgradeReward(index) {
+  if (!game.upgradeBoard.choosing) return;
+  const choice = game.upgradeBoard.choiceOptions[index];
+  if (!choice) return;
+  consumePlacedLetters();
+  applyDynamicUpgrade(choice.upgrade);
+  if (choice.risk) applyUpgradeRisk(choice.risk);
+  advanceAfterUpgrade();
+}
+
 async function toggleBoardCell(cellIndex) {
-  if (game.upgradeBoard.busy) return;
+  if (game.upgradeBoard.busy || game.upgradeBoard.choosing) return;
   const cell = game.upgradeBoard.cells[cellIndex];
   if (cell) {
     game.upgradeBoard.cells[cellIndex] = null;
@@ -1072,6 +1634,7 @@ async function toggleBoardCell(cellIndex) {
 }
 
 async function placeLetterFromRack(sourceIndex) {
+  if (game.upgradeBoard.choosing) return;
   if (isInventoryIndexOnBoard(sourceIndex)) return;
   let targetIndex = game.upgradeBoard.activeCellIndex;
   if (targetIndex == null || !canPlaceAt(targetIndex)) targetIndex = firstPlayableCell();
@@ -1084,6 +1647,7 @@ async function placeLetterFromRack(sourceIndex) {
 }
 
 async function placeLetterAt(cellIndex, sourceIndex) {
+  if (game.upgradeBoard.choosing) return;
   const item = game.inventory[sourceIndex];
   game.upgradeBoard.cells[cellIndex] = {
     char: inventoryChar(item),
@@ -1110,6 +1674,7 @@ async function placeLetterAt(cellIndex, sourceIndex) {
 
 function canPlaceAt(index) {
   if (game.upgradeBoard.cells[index]) return false;
+  if (getPlacedCells().length >= UPGRADE_TILE_LIMIT) return false;
   if (!getPlacedCells().length) return true;
   return neighborIndices(index).some((neighbor) => game.upgradeBoard.cells[neighbor]);
 }
@@ -1164,8 +1729,7 @@ async function scoreMoveAt(cellIndex) {
     word.powered = powered;
     word.recognized = upgrade.recognized || [word.word];
     game.upgradeBoard.foundWords.push(word);
-    game.upgradeBoard.pendingUpgrades.push(upgrade);
-    sendVersusWord(word, upgrade);
+    game.upgradeBoard.pendingUpgrades.push(upgrade);
     added.push(word);
   });
   return { checked: candidates, added };
@@ -1183,6 +1747,156 @@ function amplifyUpgrade(upgrade, multiplier) {
     title: `${upgrade.title} x${multiplier}`,
     description: `${upgrade.description} x${multiplier}`,
   };
+}
+
+function buildUpgradeChoices(seedUpgrade) {
+  if (seedUpgrade.highRoll) return buildHighRollChoices(seedUpgrade);
+  const base = normalizeUpgradeChoice(seedUpgrade, "安定強化", "作った単語をそのまま伸ばす。");
+  const risky = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: seedUpgrade.power + 2,
+      title: `${seedUpgrade.title} +Risk`,
+      description: `${seedUpgrade.description} リスクを背負って効果増幅。`,
+    },
+    "リスク強化",
+    "強い代わりに次フェーズの弾圧が上がる。",
+    { bulletPressure: 0.12, label: "次フェーズ弾圧 +12%" },
+  );
+  const counterType = nextBossCounterType();
+  const counter = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      type: counterType,
+      label: upgradeLabelForType(counterType),
+      power: Math.max(2, seedUpgrade.power),
+      title: `${attributeLabelForType(counterType)}対策 ${seedUpgrade.word}`,
+      description: `次のボス弱点に寄せた${attributeLabelForType(counterType)}強化。`,
+    },
+    "ボス対策",
+    "次に来る夜ボスの弱点へ寄せる。",
+  );
+  return [base, risky, counter];
+}
+
+function buildHighRollChoices(seedUpgrade) {
+  const awakened = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: seedUpgrade.power + 2,
+      title: `${seedUpgrade.title} 覚醒`,
+      description: `${seedUpgrade.description} さらに覚醒して効果上昇。`,
+    },
+    "大当たり覚醒",
+    "3文字レア単語。ノーリスクでかなり強い。",
+  );
+  const signature = highRollSignatureChoice(seedUpgrade);
+  const overdrive = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: seedUpgrade.power + 5,
+      title: `${seedUpgrade.title} 暴走`,
+      description: `${seedUpgrade.description} 属性の尖りを暴走させて破格の効果。`,
+    },
+    "暴走上振れ",
+    "元の属性を保ったまま破格に伸ばす。代わりに次フェーズの弾圧が跳ねる。",
+    { bulletPressure: 0.18, label: "次フェーズ弾圧 +18%" },
+  );
+  return [awakened, signature, overdrive];
+}
+
+function highRollSignatureChoice(seedUpgrade) {
+  const signatures = {
+    attack: {
+      name: "炎核点火",
+      title: `炎核点火 ${seedUpgrade.word}`,
+      description: "炎の大当たり。弾威力を一点突破で伸ばし、ボス削りを最優先にする。",
+      detail: "火力特化。弱点一致ボスを短時間で倒すための選択。",
+      power: seedUpgrade.power + 4,
+    },
+    mobility: {
+      name: "風読み",
+      title: `風読み ${seedUpgrade.word}`,
+      description: "風の大当たり。移動速度、低速性能、無敵時間をまとめて伸ばす。",
+      detail: "回避特化。難しい弾幕を操作精度で抜けるための選択。",
+      power: seedUpgrade.power + 3,
+    },
+    control: {
+      name: "氷結支配",
+      title: `氷結支配 ${seedUpgrade.word}`,
+      description: "氷の大当たり。敵弾スローを強め、次フェーズの弾圧リスクも下げる。",
+      detail: "盤面制御特化。リスクを抑えて安全に次へ進む選択。",
+      power: seedUpgrade.power + 4,
+    },
+    life: {
+      name: "光環再生",
+      title: `光環再生 ${seedUpgrade.word}`,
+      description: "光の大当たり。最大HPと回復量を伸ばし、長期戦の許容量を増やす。",
+      detail: "生存特化。被弾を許容してボスまで粘るための選択。",
+      power: seedUpgrade.power + 3,
+    },
+    pattern: {
+      name: "闇侵食",
+      title: `闇侵食 ${seedUpgrade.word}`,
+      description: "闇の大当たり。全ボス弱点を突く万能性を保ったまま拡散を増やす。",
+      detail: "万能弱点特化。作りにくい闇だけが選べるボス対策。",
+      power: seedUpgrade.power + 4,
+      risk: { bulletPressure: 0.1, label: "次フェーズ弾圧 +10%" },
+    },
+  };
+  const signature = signatures[seedUpgrade.type] || signatures.life;
+  return normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: signature.power,
+      title: signature.title,
+      description: signature.description,
+      highRoll: true,
+    },
+    signature.name,
+    signature.detail,
+    signature.risk || null,
+  );
+}
+
+function normalizeUpgradeChoice(upgrade, name, detail, risk = null) {
+  return {
+    name,
+    detail,
+    risk,
+    upgrade: {
+      ...upgrade,
+      valid: true,
+      power: Math.max(1, Math.round(upgrade.power || 1)),
+      label: upgrade.label || upgradeLabelForType(upgrade.type),
+      title: upgrade.title || `${upgrade.word} ${upgradeLabelForType(upgrade.type)}`,
+      description: upgrade.description || describeDynamicUpgrade(upgrade.type, upgrade.power || 1),
+    },
+  };
+}
+
+function nextBossCounterType() {
+  const nextBossPhase = Math.ceil((game.phase + 1) / 3) * 3;
+  return selectBossDesign(nextBossPhase).weak;
+}
+
+function upgradeLabelForType(type) {
+  if (type === "attack") return "攻撃";
+  if (type === "mobility") return "移動";
+  if (type === "defense") return "守り";
+  if (type === "control") return "制御";
+  if (type === "life") return "生命";
+  return "闇";
+}
+
+function attributeLabelForType(type) {
+  return SHOT_ATTRIBUTES.find((attribute) => attribute.id === type)?.label || upgradeLabelForType(type);
+}
+
+function applyUpgradeRisk(risk) {
+  if (risk.bulletPressure) {
+    game.riskBulletPressure = (game.riskBulletPressure || 0) + risk.bulletPressure;
+  }
 }
 
 function getWordsThroughCell(cellIndex) {
@@ -1297,6 +2011,7 @@ function pushLineWord(words, cells, direction) {
 function consumePlacedLetters() {
   const selected = getPlacedCells().map((cell) => cell.sourceIndex).sort((a, b) => b - a);
   for (const index of selected) game.inventory.splice(index, 1);
+  normalizeSelectedLetterIndex();
   game.upgradeBoard.cells = Array(BOARD_SIZE).fill(null);
   game.upgradeBoard.activeIndex = null;
 }
@@ -1313,6 +2028,7 @@ async function analyzeWord(word) {
   } catch {
     // Fall back to the in-browser list when the local API is unavailable.
   }
+  if (HIGH_ROLL_WORDS.has(normalized)) return createHighRollUpgrade(normalized);
   if (!LOCAL_WORDS.has(normalized)) return { valid: false, word: normalized };
   return createWordUpgrade(normalized);
 }
@@ -1322,6 +2038,7 @@ function normalizeKana(word) {
 }
 
 function createWordUpgrade(word) {
+<<<<<<< HEAD
   const combined = word;
   const tag = WORD_TAGS.find((candidate) => candidate.words.some((keyword) => combined.includes(keyword))) || inferWordTag(word);
   const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
@@ -1346,30 +2063,59 @@ function inferElement(word, recognized = []) {
   return "neutral";
 }
 
+=======
+  const combined = word;
+  const tag = WORD_TAGS.find((candidate) => candidate.words.some((keyword) => combined.includes(keyword))) || inferWordTag(word);
+  const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
+  return {
+    valid: true,
+    word,
+    type: tag.type,
+    label: tag.label,
+    power,
+    title: `${word} ${tag.label}`,
+    description: describeDynamicUpgrade(tag.type, power),
+  };
+}
+
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function inferWordTag(word) {
-  if (/[らりるれろ]/.test(word)) return { type: "pattern", label: "弾幕" };
+  if (/[やみかげ]/.test(word) && word.length >= 3) return { type: "pattern", label: "闇" };
   if (/[かきくけこがぎぐげご]/.test(word)) return { type: "attack", label: "攻撃" };
   if (/[まみむめも]/.test(word)) return { type: "defense", label: "守り" };
+  if (/[らりるれろ]/.test(word)) return { type: "control", label: "制御" };
   if (word.length <= 2) return { type: "mobility", label: "移動" };
   return { type: "life", label: "生命" };
 }
+<<<<<<< HEAD
 
 function rareLetterBonus(word) {
   return [...word].filter((char) => "ゃゅょっん".includes(char)).length;
 }
 
+=======
+
+function rareLetterBonus(word) {
+  return [...word].filter((char) => "ゃゅょっん".includes(char)).length;
+}
+
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function describeDynamicUpgrade(type, power) {
-  if (type === "attack") return `弾の威力 +${power}`;
-  if (type === "mobility") return "移動速度アップ。";
-  if (type === "defense") return "HP回復と短い無敵。";
-  if (type === "control") return "敵弾スローを付与。";
-  if (type === "life") return "最大HPアップと回復。";
-  return "拡散ショットを追加。";
+  if (type === "attack") return `炎: 弾威力 +${power}。強化で重い火柱弾が増える。`;
+  if (type === "mobility") return "風: 移動速度と低速性能アップ。強化で横風の針弾が増える。";
+  if (type === "defense") return "守り: HP回復と短い無敵。立て直し用。";
+  if (type === "control") return "氷: 敵弾スローと弾圧低下。強化で大きい制圧弾が増える。";
+  if (type === "life") return "光: 最大HPアップと回復。強化で追尾する光弾が増える。";
+  return "闇: 全ボス弱点を突ける。強化で波打つ闇弾が増えるが弾圧リスクも上がる。";
 }
 
 function applyDynamicUpgrade(upgrade) {
   const p = game.player;
+<<<<<<< HEAD
   unlockElement(upgrade.element);
+=======
+  increaseAttributeMod(upgrade.type, upgrade.highRoll ? 2 : 1);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   if (upgrade.type === "attack") {
     p.bulletDamageBonus += upgrade.power;
   } else if (upgrade.type === "mobility") {
@@ -1381,17 +2127,21 @@ function applyDynamicUpgrade(upgrade) {
     p.invuln += 1 + upgrade.power * 0.25;
   } else if (upgrade.type === "control") {
     game.startingSlow += 1.3 + upgrade.power * 0.45;
+    game.riskBulletPressure = Math.max(0, (game.riskBulletPressure || 0) - 0.03 * upgrade.power);
   } else if (upgrade.type === "life") {
     p.maxHp += 1;
     p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(upgrade.power / 3));
   } else {
     p.spread += 1;
+    game.riskBulletPressure = (game.riskBulletPressure || 0) + 0.03 + upgrade.power * 0.01;
   }
   game.upgrades.push(upgrade.title);
+  addBuffIcon(upgrade);
   game.score += 120 + upgrade.word.length * 90 + upgrade.power * 60;
   setMessage(upgrade.description);
 }
 
+<<<<<<< HEAD
 function unlockElement(element) {
   if (!element || !ELEMENTS.includes(element) || game.unlockedElements.includes(element)) return;
   game.unlockedElements.push(element);
@@ -1432,6 +2182,62 @@ function startNextPhase() {
   game.mode = "phase";
   lastFrame = performance.now();
   setMessage(`Phase ${game.phase}: survive and collect more letters`);
+=======
+function increaseAttributeMod(type, amount) {
+  if (!game.player.attributeMods || !Object.hasOwn(game.player.attributeMods, type)) return;
+  game.player.attributeMods[type] = Math.min(5, game.player.attributeMods[type] + amount);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
+}
+
+function createHighRollUpgrade(word) {
+  const highRoll = HIGH_ROLL_WORDS.get(word);
+  return {
+    valid: true,
+    word,
+    type: highRoll.type,
+    label: highRoll.label,
+    power: highRoll.power,
+    title: highRoll.title,
+    description: highRoll.description,
+    highRoll: true,
+    recognized: [word, highRoll.label],
+  };
+}
+
+function addBuffIcon(upgrade) {
+  game.buffIcons.push({
+    icon: buffIconForType(upgrade.type),
+    type: upgrade.type || "pattern",
+    title: upgrade.title,
+    description: upgrade.description,
+  });
+  game.buffIcons = game.buffIcons.slice(-8);
+}
+
+function buffIconForType(type) {
+  if (type === "attack") return "A";
+  if (type === "mobility") return ">";
+  if (type === "defense") return "D";
+  if (type === "control") return "~";
+  if (type === "life") return "+";
+  return "*";
+}
+
+function startNextPhase() {
+  game.phase += 1;
+  game.stage = game.phase;
+  game.phaseTime = 0;
+  game.effects.slow = game.startingSlow;
+  if (isBossPhase(game.phase)) {
+    startFinalBattle();
+    return;
+  }
+  game.phaseGoal = PHASE_DURATION + 6;
+  game.spawnTimer = 1;
+  game.letterTimer = 0.7;
+  game.mode = "phase";
+  lastFrame = performance.now();
+  setMessage(`Phase ${game.phase}: survive and collect more letters`);
 }
 
 function isBossPhase(phase) {
@@ -1447,9 +2253,13 @@ function startFinalBattle() {
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
   const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
+<<<<<<< HEAD
   const element = bossElementForPhase(game.phase);
   const weakness = elementWeakness(element);
   unlockElement(weakness);
+=======
+  const design = debugBossDesign() || selectBossDesign(game.phase);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   game.boss = {
     x: WIDTH / 2,
     y: -70,
@@ -1459,6 +2269,7 @@ function startFinalBattle() {
     phase: 0,
     attackTimer: 0,
     entry: 0,
+<<<<<<< HEAD
     element,
     weakness,
   };
@@ -1484,12 +2295,37 @@ function bossElementInfoText() {
 
 function elementWeakness(element) {
   return Object.keys(ELEMENT_BEATS).find((candidate) => ELEMENT_BEATS[candidate] === element) || "neutral";
+=======
+    design,
+  };
+  lastFrame = performance.now();
+  setMessage(design.message);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
+}
+
+function selectBossDesign(phase) {
+  const bossIndex = Math.max(0, Math.floor(phase / 3) - 1);
+  return BOSS_DESIGNS[bossIndex % BOSS_DESIGNS.length];
+}
+
+function debugBossDesign() {
+  if (!debugMode || !game.debugBossId) return null;
+  return BOSS_DESIGNS.find((design) => design.id === game.debugBossId) || null;
+}
+
+function bossAttributeMultiplier(boss, bullet) {
+  if (bullet.type === "letter") return 0.65;
+  if (bullet.attribute === "pattern") return 1.52;
+  if (bullet.attribute === boss.design.weak) return 1.65;
+  if (bullet.attribute === boss.design.resist) return 0.62;
+  return 1;
 }
 
 function restoreOverlayHint() {
   const hint = overlay.querySelector(".hint");
-  hint.textContent = "Shoot falling letters to collect them. Build words between phases to choose upgrades.";
+  hint.textContent = KEY_PRESETS[keyPreset].hint;
 }
+<<<<<<< HEAD
 
 function checkCollisions() {
   for (let i = game.playerBullets.length - 1; i >= 0; i -= 1) {
@@ -1536,10 +2372,49 @@ function checkCollisions() {
       game.boss.hp -= weaknessHit ? bullet.damage * 2.2 : bullet.damage;
       consumed = true;
       burst(bullet.x, bullet.y, weaknessHit ? ELEMENT_COLORS[bullet.element] : "#ffd36e", weaknessHit ? 8 : 3);
+=======
+
+function checkCollisions() {
+  for (let i = game.playerBullets.length - 1; i >= 0; i -= 1) {
+    const bullet = game.playerBullets[i];
+    let consumed = false;
+    for (let j = game.letters.length - 1; j >= 0; j -= 1) {
+      const letter = game.letters[j];
+      if (distance(bullet, letter) < bullet.radius + letter.radius) {
+        game.letters.splice(j, 1);
+        collectLetter(letter);
+        consumed = true;
+        break;
+      }
+    }
+    for (const enemy of game.enemies) {
+      if (consumed) break;
+      if (distance(bullet, enemy) < bullet.radius + enemy.radius) {
+        if (enemy.letterShield && bullet.type !== "letter") {
+          consumed = true;
+          burst(bullet.x, bullet.y, "#d6ff8f", 5);
+          setMessage("文字シールドにはKの文字弾が効く。");
+          break;
+        }
+        enemy.hp -= enemy.letterShield ? enemy.hp : bullet.damage;
+        consumed = true;
+        burst(bullet.x, bullet.y, enemy.letterShield ? "#d6ff8f" : "#79e7ff", enemy.letterShield ? 8 : 4);
+        if (enemy.hp <= 0) destroyEnemy(enemy);
+        break;
+      }
+    }
+    if (!consumed && game.boss && distance(bullet, game.boss) < bullet.radius + game.boss.radius) {
+      const multiplier = bossAttributeMultiplier(game.boss, bullet);
+      game.boss.hp -= bullet.damage * multiplier;
+      consumed = true;
+      const burstColor = multiplier > 1 ? game.boss.design.accent : multiplier < 1 ? "rgba(238, 248, 255, 0.55)" : game.boss.design.color;
+      burst(bullet.x, bullet.y, burstColor, multiplier > 1 ? 8 : 3);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
       if (game.boss.hp <= 0) {
         clearBossPhase();
         return;
       }
+<<<<<<< HEAD
     }
     if (consumed) game.playerBullets.splice(i, 1);
   }
@@ -1582,6 +2457,39 @@ function destroyEnemy(enemy) {
   enemy.y = HEIGHT + 100;
 }
 
+=======
+    }
+    if (consumed) game.playerBullets.splice(i, 1);
+  }
+
+  const p = game.player;
+  if (p.invuln <= 0) {
+    for (const bullet of game.enemyBullets) {
+      if (distance(bullet, p) < bullet.radius + HIT_RADIUS) {
+        damagePlayer();
+        bullet.y = HEIGHT + 100;
+        break;
+      }
+    }
+    for (const enemy of game.enemies) {
+      if (distance(enemy, p) < enemy.radius + HIT_RADIUS) {
+        enemy.hp = 0;
+        damagePlayer();
+        break;
+      }
+    }
+  }
+}
+
+function destroyEnemy(enemy) {
+  game.score += enemy.score;
+  game.kills += 1;
+  if (enemy.letterShield) rewardLetterShield(enemy);
+  burst(enemy.x, enemy.y, enemy.letterShield ? "#d6ff8f" : "#ffd36e", enemy.letterShield ? 20 : 12);
+  enemy.y = HEIGHT + 100;
+}
+
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function rewardLetterShield(enemy) {
   const count = 2 + Math.floor(Math.random() * 2);
   const gained = [];
@@ -1590,16 +2498,20 @@ function rewardLetterShield(enemy) {
     game.inventory.push(makePoweredLetter(char));
     gained.push(char);
   }
-  while (game.inventory.length > 24) game.inventory.shift();
+  while (game.inventory.length > INVENTORY_LIMIT) game.inventory.shift();
+  normalizeSelectedLetterIndex();
   game.score += 180 * count;
-  setMessage(`文字シールド撃破: 色付き ${gained.join(" ")} を獲得。`);
+  setMessage(`Letter shield broken: powered letters ${gained.join(" ")} gained.`);
   burst(enemy.x, enemy.y, "#eef8ff", 10);
 }
-
 function damagePlayer() {
   const p = game.player;
-  if (debugInvincible) return;
+  if (debugMode && game.debugInvincible) {
+    p.invuln = 0.5;
+    return;
+  }
   p.hp -= 1;
+<<<<<<< HEAD
   p.invuln = 1.4;
   game.hits += 1;
   game.flash = 0.2;
@@ -1924,6 +2836,136 @@ function drawRivalLetter(letter) {
   rivalCtx.textBaseline = "alphabetic";
 }
 
+=======
+  p.invuln = 1.4;
+  game.hits += 1;
+  game.flash = 0.2;
+  burst(p.x, p.y, "#ff6b9a", 18);
+  if (p.hp <= 0) finish("game_over");
+}
+
+function clearBossPhase() {
+  game.score += 1200 + game.phase * 160 + game.player.hp * 220;
+  game.stagesCleared = Math.max(game.stagesCleared, game.phase);
+  game.boss = null;
+  game.enemies.length = 0;
+  game.enemyBullets.length = 0;
+  game.playerBullets.length = 0;
+  setMessage(`Boss ${Math.floor(game.phase / 3)} cleared`);
+  enterUpgrade();
+}
+
+function finish(mode) {
+  game.mode = mode;
+  updateHud();
+  submitRanking();
+  overlay.hidden = false;
+  overlay.querySelector("h1").textContent = mode === "game_clear" ? "Run Clear" : "Game Over";
+  overlay.querySelector("p").textContent = `Flow ${game.stagesCleared} / Score ${game.score} / Kills ${game.kills} / Hits ${game.hits}`;
+  startButton.textContent = "Back to Title";
+  restoreOverlayHint();
+}
+
+function togglePause() {
+  if (game.mode === "phase" || game.mode === "final") {
+    game.mode = "pause";
+    overlay.hidden = false;
+    overlay.querySelector("h1").textContent = "Paused";
+    overlay.querySelector("p").textContent = "Press Esc to resume, or Enter to restart.";
+    startButton.textContent = "Restart";
+  } else if (game.mode === "pause") {
+    game.mode = game.boss ? "final" : "phase";
+    overlay.hidden = true;
+    lastFrame = performance.now();
+  }
+  updateHud();
+}
+
+function updateParticles(dt) {
+  for (const p of game.particles) {
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+  }
+  game.particles = game.particles.filter((p) => p.life > 0);
+}
+
+function burst(x, y, color, count) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 45 + Math.random() * 145;
+    game.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.25 + Math.random() * 0.35, color });
+  }
+}
+
+function draw() {
+  drawBackground();
+  drawPlayerBullets();
+  drawEnemies();
+  drawBoss();
+  drawEnemyBullets();
+  drawLetters();
+  drawPlayer();
+  drawParticles();
+  drawBossHp();
+  drawMessage();
+  if (game.flash > 0) {
+    ctx.fillStyle = `rgba(255, 80, 120, ${game.flash * 1.6})`;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  }
+}
+
+function drawBackground() {
+  ctx.fillStyle = "#071120";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.save();
+  ctx.translate(0, game.scroll % 80);
+  for (let y = -80; y < HEIGHT + 80; y += 80) {
+    ctx.strokeStyle = "rgba(121, 231, 255, 0.09)";
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(WIDTH, y);
+    ctx.stroke();
+    for (let x = 32; x < WIDTH; x += 72) {
+      const twinkle = 0.35 + Math.sin((game.scroll + x + y) * 0.04) * 0.25;
+      ctx.fillStyle = `rgba(255, 244, 190, ${twinkle})`;
+      ctx.fillRect(x, y + (x % 47), 2, 2);
+    }
+  }
+  ctx.restore();
+  const grad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  grad.addColorStop(0, "rgba(14, 44, 82, 0.55)");
+  grad.addColorStop(1, "rgba(3, 9, 19, 0.25)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+}
+
+function drawPlayer() {
+  const p = game.player;
+  ctx.save();
+  ctx.globalAlpha = p.invuln > 0 ? 0.55 + Math.sin(game.time * 30) * 0.25 : 1;
+  ctx.fillStyle = "#79e7ff";
+  ctx.shadowColor = "#79e7ff";
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - 19);
+  ctx.lineTo(p.x - 15, p.y + 16);
+  ctx.lineTo(p.x, p.y + 8);
+  ctx.lineTo(p.x + 15, p.y + 16);
+  ctx.closePath();
+  ctx.fill();
+  if (isActionPressed("focus")) {
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#ffd36e";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, HIT_RADIUS + 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function drawPlayerBullets() {
   ctx.save();
   ctx.font = "700 20px ui-sans-serif, system-ui, sans-serif";
@@ -1944,21 +2986,69 @@ function drawPlayerBullets() {
       ctx.fillStyle = "#eef8ff";
       ctx.fillText(b.char, b.x, b.y + 1);
     } else {
+<<<<<<< HEAD
       const color = ELEMENT_COLORS[b.element] || "#baf6ff";
       ctx.fillStyle = color;
       ctx.shadowColor = color;
+=======
+      ctx.fillStyle = b.color || "#baf6ff";
+      ctx.shadowColor = b.glow || "#79e7ff";
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
       ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.roundRect(b.x - 3, b.y - 12, 6, 18, 3);
-      ctx.fill();
+      drawPlayerBulletShape(b);
     }
   }
   ctx.restore();
 }
 
+<<<<<<< HEAD
 function drawEnemies() {
   for (const e of game.enemies) {
     ctx.fillStyle = ELEMENT_COLORS[e.element] || (e.type === "A" ? "#ff8db3" : e.type === "B" ? "#ffd36e" : e.type === "D" ? "#d6ff8f" : "#c99cff");
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+=======
+function drawPlayerBulletShape(b) {
+  if (b.shape === "flame") {
+    ctx.moveTo(b.x, b.y - 15);
+    ctx.quadraticCurveTo(b.x + 8, b.y - 3, b.x + 2, b.y + 10);
+    ctx.quadraticCurveTo(b.x - 9, b.y + 1, b.x, b.y - 15);
+    ctx.fill();
+  } else if (b.shape === "needle") {
+    ctx.roundRect(b.x - 2, b.y - 16, 4, 28, 2);
+    ctx.fill();
+  } else if (b.shape === "orb") {
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(238, 248, 255, 0.7)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else if (b.shape === "spark") {
+    ctx.moveTo(b.x, b.y - 13);
+    ctx.lineTo(b.x + 6, b.y - 2);
+    ctx.lineTo(b.x + 2, b.y + 11);
+    ctx.lineTo(b.x - 6, b.y + 1);
+    ctx.closePath();
+    ctx.fill();
+  } else if (b.shape === "dark") {
+    ctx.ellipse(b.x, b.y, b.radius * 1.25, b.radius * 2.1, Math.sin(b.age * 8) * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 242, 168, 0.45)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else {
+    ctx.roundRect(b.x - 3, b.y - 12, 6, 18, 3);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
+    ctx.fill();
+  }
+}
+
+function drawEnemies() {
+  for (const e of game.enemies) {
+    ctx.fillStyle = e.type === "A" ? "#ff8db3" : e.type === "B" ? "#ffd36e" : e.type === "D" ? "#d6ff8f" : "#c99cff";
     ctx.shadowColor = ctx.fillStyle;
     ctx.shadowBlur = 12;
     ctx.beginPath();
@@ -1982,6 +3072,7 @@ function drawEnemies() {
 function drawBoss() {
   const b = game.boss;
   if (!b) return;
+<<<<<<< HEAD
   ctx.fillStyle = ELEMENT_COLORS[b.element] || "#ff6b9a";
   ctx.shadowColor = ctx.fillStyle;
   ctx.shadowBlur = 24;
@@ -1993,6 +3084,111 @@ function drawBoss() {
   ctx.arc(b.x, b.y + 4, b.radius * 0.42, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
+}
+
+function drawEnemyBullets() {
+  for (const b of game.enemyBullets) {
+    ctx.fillStyle = b.color;
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawLetters() {
+=======
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.fillStyle = b.design.color;
+  ctx.strokeStyle = b.design.accent;
+  ctx.shadowColor = b.design.color;
+  ctx.shadowBlur = 24;
+  if (b.design.id === "ember") drawEmberBoss(b);
+  else if (b.design.id === "azure") drawAzureBoss(b);
+  else drawVioletBoss(b);
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = "800 13px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = b.design.accent;
+  ctx.shadowColor = "#071120";
+  ctx.shadowBlur = 8;
+  ctx.fillText(`${b.design.name}  弱点: ${bossWeakLabel(b)}`, b.x, b.y + b.radius + 30);
+  ctx.restore();
+}
+
+function drawEmberBoss(b) {
+  ctx.beginPath();
+  ctx.ellipse(0, 8, b.radius * 1.18, b.radius * 0.82, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.fillStyle = b.design.accent;
+  ctx.beginPath();
+  ctx.moveTo(-42, -8);
+  ctx.lineTo(-27, -42);
+  ctx.lineTo(-10, -12);
+  ctx.lineTo(0, -50);
+  ctx.lineTo(10, -12);
+  ctx.lineTo(27, -42);
+  ctx.lineTo(42, -8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#241606";
+  ctx.beginPath();
+  ctx.arc(-18, 9, 7, 0, Math.PI * 2);
+  ctx.arc(18, 9, 7, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAzureBoss(b) {
+  ctx.lineWidth = 5;
+  for (let i = 0; i < 3; i += 1) {
+    ctx.rotate((game.time * 0.7) + i * (Math.PI * 2 / 3));
+    ctx.beginPath();
+    ctx.ellipse(0, 0, b.radius * 1.35, b.radius * 0.28, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(7, 17, 32, 0.88)";
+  ctx.beginPath();
+  ctx.arc(0, 0, b.radius * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = b.design.color;
+  ctx.beginPath();
+  ctx.arc(0, 0, b.radius * 0.34, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawVioletBoss(b) {
+  ctx.beginPath();
+  ctx.moveTo(0, -b.radius);
+  ctx.lineTo(b.radius * 0.95, -6);
+  ctx.lineTo(b.radius * 0.58, b.radius * 0.82);
+  ctx.lineTo(-b.radius * 0.58, b.radius * 0.82);
+  ctx.lineTo(-b.radius * 0.95, -6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = b.design.accent;
+  ctx.font = "900 34px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("字", 0, 6);
+  ctx.strokeStyle = "rgba(238, 248, 255, 0.74)";
+  ctx.beginPath();
+  ctx.arc(0, 2, b.radius * 0.68, game.time * 0.7, game.time * 0.7 + Math.PI * 1.35);
+  ctx.stroke();
+}
+
+function bossWeakLabel(boss) {
+  return SHOT_ATTRIBUTES.find((attribute) => attribute.id === boss.design.weak)?.label || boss.design.weak;
 }
 
 function drawEnemyBullets() {
@@ -2043,15 +3239,37 @@ function drawParticles() {
 function drawBossHp() {
   if (!game.boss) return;
   const w = WIDTH - 64;
-  const pct = clamp(game.boss.hp / game.boss.maxHp, 0, 1);
+  const boss = game.boss;
+  const pct = clamp(boss.hp / boss.maxHp, 0, 1);
+  ctx.save();
   ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
   ctx.fillRect(32, 32, w, 8);
+<<<<<<< HEAD
   ctx.fillStyle = ELEMENT_COLORS[game.boss.element] || "#ff6b9a";
   ctx.fillRect(32, 32, w * pct, 8);
   ctx.font = "700 12px ui-sans-serif, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(238, 248, 255, 0.92)";
   ctx.fillText(`${ELEMENT_LABELS[game.boss.element]} boss / weak: ${ELEMENT_LABELS[game.boss.weakness]}`, WIDTH / 2, 26);
+}
+
+function drawMessage() {
+  if (game.messageTimer <= 0 && game.mode !== "title") return;
+  if (!game.message) return;
+  ctx.save();
+  ctx.font = "700 18px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(238, 248, 255, 0.92)";
+  ctx.fillText(game.message, WIDTH / 2, 64);
+=======
+  ctx.fillStyle = boss.design.color;
+  ctx.fillRect(32, 32, w * pct, 8);
+  ctx.font = "800 12px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillStyle = boss.design.accent;
+  ctx.fillText(`${boss.design.name} / 弱点 ${bossWeakLabel(boss)}`, 32, 25);
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
+  ctx.restore();
 }
 
 function drawMessage() {
@@ -2079,57 +3297,140 @@ function updateHud() {
   }
   stateEl.textContent = game.stagesCleared;
   const risk = inventoryRisk();
-  const riskText = risk > 6 ? "危険" : risk > 0 ? "重い" : "余裕";
+  const riskText = risk > 6 ? "danger" : risk > 0 ? "heavy" : "light";
+  const rackText = game.inventory.map((item, index) => {
+    const label = inventoryLabel(item);
+    return index === selectedLetterIndex() ? `[${label}]` : label;
+  }).join(" ");
   letterRackEl.textContent = game.inventory.length
-    ? `${game.inventory.map(inventoryLabel).join(" ")} (${game.inventory.length}/24 ${riskText})`
+    ? `${rackText} (${game.inventory.length}/${INVENTORY_LIMIT} ${riskText})`
     : "collect letters";
   const activeEffects = Object.entries(game.effects)
     .filter(([, time]) => time > 0)
     .map(([name, time]) => `${name} ${Math.ceil(time)}s`);
+<<<<<<< HEAD
   const elementText = `Element: ${ELEMENT_LABELS[game.activeElement]} (${game.unlockedElements.map((element) => `${ELEMENTS.indexOf(element) + 1}:${ELEMENT_LABELS[element]}`).join(" ")})`;
   const bossText = bossElementInfoText();
   const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
   const versusText = formatVersusHud();
   effectsEl.textContent = [activeEffects.join(" / "), elementText, bossText, upgrades, versusText].filter(Boolean).join(" | ") || "no active effects";
   updateRivalHud();
+=======
+  const attribute = currentShotAttribute();
+  const attributeText = `属性: ${attribute.label} (${attribute.role})`;
+  const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
+  effectsEl.textContent = [attributeText, activeEffects.join(" / "), upgrades].filter(Boolean).join(" | ");
+  updateBuffTray();
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 }
 
-function updateRivalHud() {
-  if (!rivalNameEl || !rivalHpEl || !rivalScoreEl || !rivalPhaseEl) return;
-  const peer = versus.peerState;
-  const fresh = peer && performance.now() - peer.receivedAt <= 4000;
-  if (!fresh) {
-    rivalNameEl.textContent = versus.enabled ? "Waiting" : "Rival";
-    rivalHpEl.textContent = "-";
-    rivalScoreEl.textContent = "0";
-    rivalPhaseEl.textContent = "-";
-    return;
-  }
-  rivalNameEl.textContent = peer.name || "Rival";
-  rivalHpEl.textContent = Number.isFinite(peer.hp) && Number.isFinite(peer.maxHp) ? `${peer.hp}/${peer.maxHp}` : "-";
-  rivalScoreEl.textContent = Number.isFinite(peer.score) ? peer.score : "0";
-  if (peer.mode === "upgrade") {
-    rivalPhaseEl.textContent = `Build ${peer.phase || "-"} / ${peer.board?.foundWords?.length || 0} words`;
-  } else {
-    rivalPhaseEl.textContent = peer.mode === "final" ? "Final" : peer.phase || "-";
+function updateBuffTray() {
+  if (!buffTrayEl) return;
+  const timed = Object.entries(game.effects)
+    .filter(([, time]) => time > 0)
+    .map(([type, time]) => ({
+      icon: timedBuffIcon(type),
+      type,
+      title: `${type} ${Math.ceil(time)}s`,
+      description: timedBuffDescription(type),
+    }));
+  const permanent = (game.buffIcons || []).slice(-5);
+  const icons = [...timed, ...permanent];
+  buffTrayEl.hidden = icons.length === 0;
+  buffTrayEl.innerHTML = "";
+  for (const item of icons) {
+    const icon = document.createElement("span");
+    icon.className = `buff-icon buff-${item.type || "pattern"}`;
+    icon.textContent = item.icon;
+    icon.title = [item.title, item.description].filter(Boolean).join(" - ");
+    icon.setAttribute("aria-label", icon.title || "buff");
+    buffTrayEl.append(icon);
   }
 }
 
-function formatVersusHud() {
-  if (!versus.enabled) return "";
-  const matched = versus.peers.length > 0 || Boolean(versus.peerState);
-  const connection = versus.connected
-    ? matched ? "VS matched" : "VS waiting"
-    : `VS ${versus.message || "offline"}`;
-  if (!versus.peerState) return connection;
-  const peer = versus.peerState;
-  const hp = Number.isFinite(peer.hp) && Number.isFinite(peer.maxHp) ? `${peer.hp}/${peer.maxHp}` : "-";
-  return `${connection}: ${peer.name || "Rival"} HP ${hp} Score ${peer.score || 0} Phase ${peer.phase || 1}`;
+function timedBuffIcon(type) {
+  if (type === "fast") return ">";
+  if (type === "slow") return "~";
+  return "*";
+}
+
+function timedBuffDescription(type) {
+  if (type === "fast") return "speed up";
+  if (type === "slow") return "enemy slow";
+  return "timed effect";
 }
 
 function setMessage(message) {
   game.message = message;
   game.messageTimer = 2.4;
+}
+
+function toggleDebugMode() {
+  debugMode = !debugMode;
+  if (debugPanelEl) debugPanelEl.hidden = !debugMode;
+  if (!debugMode) game.debugInvincible = false;
+  syncDebugPanel();
+  setMessage(debugMode ? "Debug mode enabled" : "Debug mode disabled");
+  updateHud();
+}
+
+function syncDebugPanel() {
+  if (!debugPanelEl) return;
+  if (debugInvincibleEl) debugInvincibleEl.checked = Boolean(game.debugInvincible);
+  if (debugBossSelectEl && !debugBossSelectEl.options.length) {
+    for (const design of BOSS_DESIGNS) {
+      const option = document.createElement("option");
+      option.value = design.id;
+      option.textContent = `${design.name} (${bossWeakLabel({ design })})`;
+      debugBossSelectEl.append(option);
+    }
+  }
+  if (debugBossSelectEl) debugBossSelectEl.value = game.debugBossId || BOSS_DESIGNS[0].id;
+}
+
+function handleDebugCommandKey(key) {
+  if (key.length !== 1 || !/[a-z]/.test(key)) return;
+  debugCommandBuffer = `${debugCommandBuffer}${key}`.slice(-5);
+  if (debugCommandBuffer === "debug") {
+    debugCommandBuffer = "";
+    toggleDebugMode();
+  }
+}
+
+function grantDebugLetters() {
+  if (!debugMode || !debugLettersEl) return;
+  const letters = normalizeKana(debugLettersEl.value || "").slice(0, INVENTORY_LIMIT);
+  if (!letters) return;
+  for (const char of letters) {
+    if (game.inventory.length >= INVENTORY_LIMIT) game.inventory.shift();
+    game.inventory.push(char);
+  }
+  normalizeSelectedLetterIndex();
+  if (game.selectedLetterIndex == null && game.inventory.length) game.selectedLetterIndex = 0;
+  setMessage(`Debug letters: ${letters}`);
+  updateHud();
+}
+
+function debugSkipPhase() {
+  if (!debugMode) return;
+  if (game.mode === "upgrade") {
+    advanceAfterUpgrade();
+    return;
+  }
+  if (["phase", "final", "pause", "title"].includes(game.mode)) {
+    game.mode = "phase";
+    overlay.hidden = true;
+    enterUpgrade();
+  }
+}
+
+function debugStartBoss() {
+  if (!debugMode) return;
+  game.debugBossId = debugBossSelectEl?.value || BOSS_DESIGNS[0].id;
+  game.phase = Math.max(3, Math.ceil(game.phase / 3) * 3);
+  overlay.hidden = true;
+  startFinalBattle();
+  updateHud();
 }
 
 async function submitRanking() {
@@ -2172,9 +3473,6 @@ function readPlayerName() {
   return generated;
 }
 
-function readVersusClientId() {
-  return VERSUS_CLIENT_ID;
-}
 
 function saveLocalRanking(entry) {
   const rankings = rankEntries([...readLocalRankings(), entry]);
@@ -2227,33 +3525,64 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function readKeyPreset() {
+  const stored = localStorage.getItem("vbg-key-preset");
+  return KEY_PRESETS[stored] ? stored : "standard";
+}
+
+function setKeyPreset(value) {
+  keyPreset = KEY_PRESETS[value] ? value : "standard";
+  localStorage.setItem("vbg-key-preset", keyPreset);
+  keys.clear();
+  updateKeyPresetUi();
+}
+
+function updateKeyPresetUi() {
+  if (keyPresetEl) keyPresetEl.value = keyPreset;
+  if (controlHintEl && game.mode !== "upgrade") controlHintEl.textContent = KEY_PRESETS[keyPreset].hint;
+}
+
+function normalizeInputKey(event) {
+  return event.key.toLowerCase();
+}
+
+function keyAction(key) {
+  return KEY_PRESETS[keyPreset].keys[key] || null;
+}
+
+function isActionPressed(action) {
+  return [...keys].some((key) => keyAction(key) === action);
+}
+
+function shouldPreventKey(key) {
+  return Boolean(keyAction(key)) || ["enter", "escape", " "].includes(key);
+}
+
 function handleStartButton() {
   if (game.mode === "upgrade") {
     forgeSelectedWord();
     return;
   }
-  stopVersus();
   startGame();
 }
 
 startButton.addEventListener("click", handleStartButton);
-versusButton?.addEventListener("click", showVersusMode);
-
-function showVersusMode() {
-  startVersusMode();
-  return;
-  game = createGame("title");
-  overlay.hidden = false;
-  overlay.querySelector("h1").textContent = "対戦";
-  overlay.querySelector("p").textContent = "対戦モードは準備中です。まずはループモードでことば強化を試せます。";
-  startButton.textContent = "ループモード";
-  if (versusButton) versusButton.textContent = "対戦";
-  restoreOverlayHint();
-  updateHud();
-  draw();
-}
+keyPresetEl?.addEventListener("change", () => {
+  setKeyPreset(keyPresetEl.value);
+});
+debugInvincibleEl?.addEventListener("change", () => {
+  game.debugInvincible = Boolean(debugInvincibleEl.checked);
+  setMessage(game.debugInvincible ? "Debug invincible on" : "Debug invincible off");
+});
+debugGrantLettersEl?.addEventListener("click", grantDebugLetters);
+debugSkipPhaseEl?.addEventListener("click", debugSkipPhase);
+debugBossSelectEl?.addEventListener("change", () => {
+  game.debugBossId = debugBossSelectEl.value;
+});
+debugStartBossEl?.addEventListener("click", debugStartBoss);
 
 window.addEventListener("keydown", (event) => {
+<<<<<<< HEAD
   const key = event.key.toLowerCase();
   if (["a", "d", "w", "s", "j", "k", "q", "e", "tab", "shift", "enter", "escape", " ", "1", "2", "3", "4", "5", "6"].includes(key)) event.preventDefault();
   if (key === "enter" && !["phase", "final"].includes(game.mode)) handleStartButton();
@@ -2263,15 +3592,26 @@ window.addEventListener("keydown", (event) => {
   if (!event.repeat && /^[1-6]$/.test(key)) switchElementByNumber(key);
   if (!event.repeat && key === "q") cycleElement(-1);
   if (!event.repeat && (key === "e" || key === "tab")) cycleElement(1);
+=======
+  const key = normalizeInputKey(event);
+  handleDebugCommandKey(key);
+  if (shouldPreventKey(key)) event.preventDefault();
+  if (key === "enter" && !["phase", "final"].includes(game.mode)) handleStartButton();
+  if (key === "escape") togglePause();
+  if (key === " " && !event.repeat) cycleShotAttribute();
+  if (keyAction(key) === "letterSelect" && !event.repeat) cycleSelectedLetter();
+  if (keyAction(key) === "letterShot" && !event.repeat) fireStoredLetter();
+>>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   keys.add(key);
 });
 
 window.addEventListener("keyup", (event) => {
-  const key = event.key.toLowerCase();
-  if (key === " ") debugInvincible = false;
+  const key = normalizeInputKey(event);
   keys.delete(key);
 });
 
+updateKeyPresetUi();
+syncDebugPanel();
 updateHud();
 loadRankings();
 draw();
