@@ -112,6 +112,33 @@ const BOSS_DESIGNS = [
     accent: "#ffd36e",
     message: "Violet Script: 氷で呪文をほどけ",
   },
+  {
+    id: "prism",
+    name: "Prism Gate",
+    weak: "life",
+    resist: "pattern",
+    color: "#fff2a8",
+    accent: "#79e7ff",
+    message: "Prism Gate: 光で予告線を読み切れ",
+  },
+  {
+    id: "comet",
+    name: "Iron Comet",
+    weak: "attack",
+    resist: "life",
+    color: "#d6ff8f",
+    accent: "#ff9f55",
+    message: "Iron Comet: 炎で戻る弾を押し返せ",
+  },
+  {
+    id: "mirage",
+    name: "Mirage Needle",
+    weak: "mobility",
+    resist: "control",
+    color: "#baf6ff",
+    accent: "#c99cff",
+    message: "Mirage Needle: 風で瞬間移動を追え",
+  },
 ];
 const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
@@ -221,6 +248,7 @@ function createGame(mode = "title") {
     enemies: [],
     particles: [],
     letters: [],
+    bossWarnings: [],
     boss: null,
   };
 }
@@ -260,6 +288,7 @@ function update(dt) {
   updatePlayerBullets(dt);
   updateEnemies(dt);
   updateEnemyBullets(dt);
+  updateBossWarnings(dt);
   updateLetterSpawner(dt);
   updateLetters(dt);
   updateParticles(dt);
@@ -533,19 +562,35 @@ function updateBoss(dt) {
   if (!boss) return;
   const slowScale = enemySlowScale();
   boss.entry += dt;
-  boss.y = Math.min(105, boss.y + dt * 90 * slowScale);
+  boss.teleportFlash = Math.max(0, (boss.teleportFlash || 0) - dt);
+  boss.mirageRest = Math.max(0, (boss.mirageRest || 0) - dt);
+  if (boss.design.id !== "mirage" || !boss.mirageSpecial) {
+    boss.y = Math.min(105, boss.y + dt * 90 * slowScale);
+  }
+
+  if (boss.design.id === "mirage" && boss.mirageSpecial) {
+    updateMirageSpecial(boss, dt * slowScale, stageDensityScale());
+    return;
+  }
+
   boss.attackTimer -= dt * slowScale;
 
   if (boss.attackTimer <= 0 && boss.y >= 104) {
     const density = stageDensityScale();
     boss.phase = boss.hp < boss.maxHp * 0.35 ? 3 : (boss.phase + 1) % 3;
     fireBossPattern(boss, density);
-    boss.attackTimer = Math.max(0.58, (boss.phase === 3 ? 0.9 : 1.25) - density * 0.05);
+    if (boss.design.id === "mirage" && boss.mirageSpecial) {
+      boss.attackTimer = 5.1;
+    } else {
+      boss.attackTimer = Math.max(0.58, (boss.phase === 3 ? 0.9 : 1.25) - density * 0.05);
+    }
   }
 
-  const movement = boss.design.id === "azure" ? 128 : boss.design.id === "violet" ? 74 : 92;
-  const rate = boss.design.id === "ember" ? 1.05 : boss.design.id === "azure" ? 1.55 : 0.9;
-  boss.x = WIDTH / 2 + Math.sin(game.time * rate * slowScale) * movement;
+  const movement = boss.design.id === "azure" ? 128 : boss.design.id === "violet" ? 74 : boss.design.id === "prism" ? 58 : boss.design.id === "comet" ? 112 : 92;
+  const rate = boss.design.id === "ember" ? 1.05 : boss.design.id === "azure" ? 1.55 : boss.design.id === "comet" ? 1.25 : 0.9;
+  if (boss.design.id !== "mirage" || (boss.teleportFlash <= 0.05 && boss.mirageRest <= 0)) {
+    boss.x = WIDTH / 2 + Math.sin(game.time * rate * slowScale) * movement;
+  }
 }
 
 function fireBossPattern(boss, density) {
@@ -571,6 +616,43 @@ function fireBossPattern(boss, density) {
       fireCircle(boss.x, boss.y + 10, 24 + density * 3, 162 + density * 8, boss.design.color, boss.entry * 1.6);
       fireCircle(boss.x, boss.y + 10, 12 + density * 2, 118 + density * 6, boss.design.accent, -boss.entry * 1.35);
     }
+    return;
+  }
+
+  if (boss.design.id === "prism") {
+    if (boss.phase === 0) queueBossBeam(clamp(game.player.x, 54, WIDTH - 54), 54, 0.82, 0.46, boss.design.color);
+    if (boss.phase === 1) queueSafeZone(82 + Math.random() * (WIDTH - 164), 126, 0.95, 0.55, boss.design.accent);
+    if (boss.phase === 2) {
+      queueBossBeam(clamp(boss.x + Math.sin(boss.entry) * 120, 48, WIDTH - 48), 44, 0.7, 0.42, boss.design.accent);
+      fireFan(boss.x, boss.y + 28, Math.PI / 2, 7 + density, 0.72, 155 + density * 8, boss.design.color);
+    }
+    if (boss.phase === 3) {
+      queueSafeZone(70 + Math.random() * (WIDTH - 140), 116, 0.82, 0.62, boss.design.color);
+      queueBossBeam(clamp(game.player.x, 50, WIDTH - 50), 46, 0.58, 0.5, boss.design.accent);
+      fireCircle(boss.x, boss.y + 12, 14 + density * 2, 122 + density * 6, boss.design.color, boss.entry);
+    }
+    return;
+  }
+
+  if (boss.design.id === "comet") {
+    if (boss.phase === 0) fireBoomerangFan(boss.x, boss.y + 26, 7 + density, 0.82, 180 + density * 7, boss.design.color);
+    if (boss.phase === 1) {
+      fireFan(boss.x, boss.y + 28, Math.PI / 2, 9 + density, 0.74, 205 + density * 8, boss.design.accent);
+      fireBoomerang(boss.x - 46, boss.y + 18, -35, 190 + density * 10, 8, boss.design.color);
+      fireBoomerang(boss.x + 46, boss.y + 18, 35, 190 + density * 10, 8, boss.design.color);
+    }
+    if (boss.phase === 2) fireCircle(boss.x, boss.y + 10, 15 + density * 2, 118 + density * 6, boss.design.accent, -boss.entry * 0.7);
+    if (boss.phase === 3) {
+      fireBoomerangFan(boss.x, boss.y + 22, 11 + density * 2, 1.15, 218 + density * 8, boss.design.color);
+      queueSafeZone(WIDTH / 2 + Math.sin(boss.entry) * 130, 140, 0.72, 0.42, boss.design.accent);
+    }
+    return;
+  }
+
+  if (boss.design.id === "mirage") {
+    boss.mirageCycle = ((boss.mirageCycle || 0) + 1) % 4;
+    if (boss.mirageCycle === 0 || boss.phase === 3) startMirageSpecial(boss);
+    else fireMirageNormalAttack(boss, density);
     return;
   }
 
@@ -610,16 +692,150 @@ function fireCircle(x, y, count, speed, color, offset = 0) {
 }
 
 function fireBullet(x, y, vx, vy, radius, color) {
-  game.enemyBullets.push({ x, y, vx, vy, radius, color });
+  const bullet = { x, y, vx, vy, radius, color };
+  game.enemyBullets.push(bullet);
+  return bullet;
+}
+
+function fireBoomerang(x, y, vx, vy, radius, color) {
+  const bullet = fireBullet(x, y, vx, vy, radius, color);
+  bullet.motion = "boomerang";
+  bullet.age = 0;
+  bullet.turnAt = 0.58 + Math.random() * 0.28;
+  bullet.originalRadius = radius;
+  return bullet;
+}
+
+function fireBoomerangFan(x, y, count, spread, speed, color) {
+  const start = Math.PI / 2 - spread / 2;
+  for (let i = 0; i < count; i += 1) {
+    const angle = start + (spread * i) / Math.max(1, count - 1);
+    fireBoomerang(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 7, color);
+  }
+}
+
+function fireFlowerPattern(x, y, density, color, accent) {
+  const petals = 6;
+  const count = 40 + density * 4;
+  for (let i = 0; i < count; i += 1) {
+    const angle = (Math.PI * 2 * i) / count;
+    const petalSpeed = 118 + Math.pow(Math.abs(Math.sin(angle * petals / 2)), 1.4) * 112 + density * 5;
+    fireBullet(x, y, Math.cos(angle) * petalSpeed, Math.sin(angle) * petalSpeed, 6, i % 2 ? color : accent);
+  }
+}
+
+function fireMirageNormalAttack(boss, density) {
+  if (boss.mirageCycle === 1) {
+    fireAimed(boss.x, boss.y + 28, 218 + density * 8, 6);
+    fireFan(boss.x, boss.y + 28, Math.PI / 2, 5 + density, 0.44, 188 + density * 7, boss.design.color);
+  } else {
+    queueBossBeam(clamp(game.player.x, 44, WIDTH - 44), 38, 0.58, 0.36, boss.design.accent);
+    fireCircle(boss.x, boss.y + 10, 10 + density * 2, 138 + density * 7, boss.design.color, boss.entry);
+  }
+}
+
+function startMirageSpecial(boss) {
+  boss.mirageSpecial = {
+    age: 0,
+    homeX: boss.x,
+    homeY: Math.max(105, boss.y),
+    front: false,
+    back: false,
+    center: false,
+    retreat: false,
+  };
+  boss.mirageRest = 0;
+  setMessage("Mirage Needle: 大技のタメ。瞬間移動を見て避けろ");
+}
+
+function updateMirageSpecial(boss, dt, density) {
+  const special = boss.mirageSpecial;
+  special.age += dt;
+  boss.attackTimer = 5.1;
+
+  if (!special.front && special.age >= 0.68) {
+    special.front = true;
+    teleportBossTo(boss, clamp(game.player.x, 72, WIDTH - 72), HEIGHT - 245);
+    fireCircle(boss.x, boss.y + 8, 18 + density * 2, 118 + density * 5, boss.design.color, boss.entry * 1.2);
+  }
+  if (!special.back && special.age >= 1.46) {
+    special.back = true;
+    teleportBossTo(boss, WIDTH - boss.x, 88);
+    fireCircle(boss.x, boss.y + 8, 22 + density * 2, 148 + density * 6, boss.design.accent, -boss.entry);
+  }
+  if (!special.center && special.age >= 2.26) {
+    special.center = true;
+    teleportBossTo(boss, WIDTH / 2, HEIGHT / 2 - 44);
+    fireFlowerPattern(boss.x, boss.y + 8, density, boss.design.color, boss.design.accent);
+  }
+  if (!special.retreat && special.age >= 3.24) {
+    special.retreat = true;
+    teleportBossTo(boss, special.homeX, special.homeY);
+    boss.mirageRest = 1.15;
+    setMessage("Mirage Needle: 戻り隙");
+  }
+  if (special.age >= 4.38) {
+    boss.mirageSpecial = null;
+    boss.attackTimer = Math.max(1.05, 1.42 - density * 0.05);
+  }
 }
 
 function updateEnemyBullets(dt) {
   const slowScale = enemySlowScale() * inventoryBulletPressure();
   for (const b of game.enemyBullets) {
+    if (b.motion === "boomerang") updateBoomerangBullet(b, dt * slowScale);
     b.x += b.vx * dt * slowScale;
     b.y += b.vy * dt * slowScale;
   }
   game.enemyBullets = game.enemyBullets.filter((b) => b.x > -40 && b.x < WIDTH + 40 && b.y > -50 && b.y < HEIGHT + 50);
+}
+
+function updateBoomerangBullet(b, dt) {
+  b.age = (b.age || 0) + dt;
+  if (!b.returning && b.age >= b.turnAt) {
+    b.returning = true;
+    b.vx *= -0.82;
+    b.vy = -Math.abs(b.vy) * 0.86;
+    b.radius = (b.originalRadius || b.radius) + 2;
+  }
+}
+
+function queueBossBeam(x, width, delay, duration, color) {
+  game.bossWarnings.push({ type: "beam", x, width, delay, duration, age: 0, color });
+}
+
+function queueSafeZone(safeX, safeWidth, delay, duration, color) {
+  game.bossWarnings.push({ type: "safe-zone", safeX: clamp(safeX, safeWidth / 2, WIDTH - safeWidth / 2), safeWidth, delay, duration, age: 0, color });
+}
+
+function updateBossWarnings(dt) {
+  for (const warning of game.bossWarnings) warning.age += dt;
+  game.bossWarnings = game.bossWarnings.filter((warning) => warning.age < warning.delay + warning.duration);
+}
+
+function bossWarningActive(warning) {
+  return warning.age >= warning.delay;
+}
+
+function bossWarningHitsPlayer(warning, player) {
+  if (!bossWarningActive(warning)) return false;
+  if (warning.type === "beam") return Math.abs(player.x - warning.x) < warning.width / 2 + HIT_RADIUS;
+  if (warning.type === "safe-zone") return Math.abs(player.x - warning.safeX) > warning.safeWidth / 2;
+  return false;
+}
+
+function teleportBoss(boss) {
+  teleportBossTo(boss, 70 + Math.random() * (WIDTH - 140), 82 + Math.random() * 70);
+}
+
+function teleportBossTo(boss, x, y) {
+  const oldX = boss.x;
+  const oldY = boss.y;
+  boss.x = clamp(x, 62, WIDTH - 62);
+  boss.y = clamp(y, 72, HEIGHT - 214);
+  boss.teleportFlash = 0.32;
+  burst(oldX, oldY, boss.design.accent, 12);
+  burst(boss.x, boss.y, boss.design.color, 16);
 }
 
 function enemySlowScale() {
@@ -1564,6 +1780,7 @@ function startFinalBattle() {
   game.letters.length = 0;
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
+  game.bossWarnings.length = 0;
   const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
   const design = debugBossDesign() || selectBossDesign(game.phase);
   game.boss = {
@@ -1575,6 +1792,7 @@ function startFinalBattle() {
     phase: 0,
     attackTimer: 0,
     entry: 0,
+    teleportFlash: 0,
     design,
   };
   lastFrame = performance.now();
@@ -1649,7 +1867,14 @@ function checkCollisions() {
 
   const p = game.player;
   if (p.invuln <= 0) {
+    for (const warning of game.bossWarnings) {
+      if (bossWarningHitsPlayer(warning, p)) {
+        damagePlayer();
+        break;
+      }
+    }
     for (const bullet of game.enemyBullets) {
+      if (p.invuln > 0) break;
       if (distance(bullet, p) < bullet.radius + HIT_RADIUS) {
         damagePlayer();
         bullet.y = HEIGHT + 100;
@@ -1709,6 +1934,7 @@ function clearBossPhase() {
   game.enemies.length = 0;
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
+  game.bossWarnings.length = 0;
   setMessage(`Boss ${Math.floor(game.phase / 3)} cleared`);
   enterUpgrade();
 }
@@ -1763,6 +1989,7 @@ function draw() {
   drawEnemies();
   drawBoss();
   drawEnemyBullets();
+  drawBossWarnings();
   drawLetters();
   drawPlayer();
   drawParticles();
@@ -1922,7 +2149,18 @@ function drawBoss() {
   ctx.shadowBlur = 24;
   if (b.design.id === "ember") drawEmberBoss(b);
   else if (b.design.id === "azure") drawAzureBoss(b);
+  else if (b.design.id === "prism") drawPrismBoss(b);
+  else if (b.design.id === "comet") drawCometBoss(b);
+  else if (b.design.id === "mirage") drawMirageBoss(b);
   else drawVioletBoss(b);
+  if (b.teleportFlash > 0) {
+    ctx.globalAlpha = Math.min(1, b.teleportFlash * 3);
+    ctx.strokeStyle = "rgba(238, 248, 255, 0.9)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, b.radius + 12 + Math.sin(game.time * 32) * 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.restore();
 
   ctx.save();
@@ -1977,6 +2215,67 @@ function drawAzureBoss(b) {
   ctx.fill();
 }
 
+function drawPrismBoss(b) {
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, -b.radius);
+  ctx.lineTo(b.radius * 0.9, 0);
+  ctx.lineTo(0, b.radius);
+  ctx.lineTo(-b.radius * 0.9, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(7, 17, 32, 0.58)";
+  ctx.lineWidth = 3;
+  for (let i = -1; i <= 1; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(i * 14, -b.radius * 0.68);
+    ctx.lineTo(-i * 18, b.radius * 0.68);
+    ctx.stroke();
+  }
+}
+
+function drawCometBoss(b) {
+  ctx.rotate(Math.sin(game.time * 2) * 0.08);
+  ctx.beginPath();
+  ctx.ellipse(0, 5, b.radius * 1.25, b.radius * 0.78, -0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = b.design.accent;
+  ctx.beginPath();
+  ctx.moveTo(-b.radius * 0.9, -2);
+  ctx.lineTo(-b.radius * 1.35, -22);
+  ctx.lineTo(-b.radius * 1.18, 16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#071120";
+  ctx.beginPath();
+  ctx.arc(16, 4, 8, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawMirageBoss(b) {
+  ctx.lineWidth = 3.5;
+  for (let i = 0; i < 4; i += 1) {
+    ctx.globalAlpha = 0.34 + i * 0.16;
+    ctx.beginPath();
+    ctx.ellipse(Math.sin(game.time * 5 + i) * 5, Math.cos(game.time * 4 + i) * 4, b.radius * (0.48 + i * 0.14), b.radius * 0.82, i * Math.PI / 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = b.design.color;
+  ctx.beginPath();
+  ctx.moveTo(0, -b.radius * 0.86);
+  ctx.lineTo(22, 0);
+  ctx.lineTo(0, b.radius * 0.86);
+  ctx.lineTo(-22, 0);
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawVioletBoss(b) {
   ctx.beginPath();
   ctx.moveTo(0, -b.radius);
@@ -2010,10 +2309,49 @@ function drawEnemyBullets() {
     ctx.shadowColor = b.color;
     ctx.shadowBlur = 8;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    if (b.motion === "boomerang") {
+      ctx.ellipse(b.x, b.y, b.radius * 1.45, b.radius * 0.78, Math.atan2(b.vy, b.vx), 0, Math.PI * 2);
+    } else {
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    }
     ctx.fill();
+    if (b.motion === "boomerang") {
+      ctx.strokeStyle = b.returning ? "rgba(238, 248, 255, 0.86)" : "rgba(7, 17, 32, 0.48)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
   ctx.shadowBlur = 0;
+}
+
+function drawBossWarnings() {
+  ctx.save();
+  for (const warning of game.bossWarnings) {
+    const active = bossWarningActive(warning);
+    const warnRatio = clamp(warning.age / Math.max(0.01, warning.delay), 0, 1);
+    if (warning.type === "beam") {
+      const alpha = active ? 0.36 : 0.14 + warnRatio * 0.18;
+      ctx.fillStyle = active ? `rgba(255, 107, 154, ${alpha})` : `rgba(255, 242, 168, ${alpha})`;
+      ctx.fillRect(warning.x - warning.width / 2, 0, warning.width, HEIGHT);
+      ctx.strokeStyle = warning.color;
+      ctx.lineWidth = active ? 4 : 2;
+      ctx.setLineDash(active ? [] : [12, 8]);
+      ctx.beginPath();
+      ctx.moveTo(warning.x, 0);
+      ctx.lineTo(warning.x, HEIGHT);
+      ctx.stroke();
+    } else if (warning.type === "safe-zone") {
+      ctx.fillStyle = active ? "rgba(255, 80, 120, 0.28)" : `rgba(255, 80, 120, ${0.08 + warnRatio * 0.12})`;
+      ctx.fillRect(0, 0, warning.safeX - warning.safeWidth / 2, HEIGHT);
+      ctx.fillRect(warning.safeX + warning.safeWidth / 2, 0, WIDTH - warning.safeX - warning.safeWidth / 2, HEIGHT);
+      ctx.strokeStyle = warning.color;
+      ctx.lineWidth = active ? 4 : 2;
+      ctx.setLineDash(active ? [] : [10, 9]);
+      ctx.strokeRect(warning.safeX - warning.safeWidth / 2, 64, warning.safeWidth, HEIGHT - 126);
+    }
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
 }
 
 function drawLetters() {
