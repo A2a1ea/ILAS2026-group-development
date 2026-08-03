@@ -524,8 +524,8 @@ function fireEnemyPattern(enemy) {
 }
 
 function enemyShootDelay(type, density) {
-  const baseTimer = type === "C" ? 1.2 : type === "B" ? 1.45 : 1.75;
-  return Math.max(0.5, baseTimer - density * 0.08);
+  const baseTimer = type === "C" ? 1.55 : type === "B" ? 1.85 : 2.15;
+  return Math.max(0.85, baseTimer - density * 0.05);
 }
 
 function updateBoss(dt) {
@@ -635,11 +635,12 @@ function inventoryMoveScale() {
 }
 
 function inventoryBulletPressure() {
-  return 1 + inventoryRisk() * 0.055 + (game.riskBulletPressure || 0);
+  return 1 + inventoryRisk() * 0.035 + (game.riskBulletPressure || 0);
 }
 
 function stageDensityScale() {
-  return Math.min(8, Math.max(0, game.phase - 1) * 2 + (game.mode === "final" ? 2 : 0));
+  if (game.mode !== "final") return Math.min(4, Math.max(0, game.phase - 1) * 0.8);
+  return Math.min(8, Math.max(0, game.phase - 1) * 2 + 2);
 }
 
 function spawnLetter() {

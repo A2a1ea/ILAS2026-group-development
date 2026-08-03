@@ -196,6 +196,7 @@ try {
   assert(js.includes("turning"), "script.js should track enemy U-turn state");
   assert(js.includes("ENEMY_TURN_EXIT_SPEED"), "script.js should send timed-out enemies back upward");
   assert(js.includes("stageDensityScale"), "script.js should scale bullet density by flow phase");
+  assert(js.includes('game.mode !== "final"') && js.includes("Math.min(4"), "non-boss phases should keep bullet density light");
   assert(js.includes("chooseEnemyType"), "script.js should vary enemy spawn types by flow phase");
   assert(js.includes("letterShield"), "script.js should include enemies that require letter bullets");
   assert(js.includes("enemy.letterShield ? enemy.hp : bullet.damage"), "letter-shield enemies should die to one letter bullet");
