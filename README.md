@@ -35,6 +35,7 @@ The dev server listens on the local network by default. Use the printed `Network
 - Phase 2+ can spawn letter-shield enemies that resist normal shots, must be damaged with K-fired letter bullets, and reward useful hiragana when defeated.
 - Letter-shield rewards are colored hiragana tiles; any upgrade word using one gets triple effect power.
 - The current MVP includes scrolling background, enemies, enemy bullets, HP, upgrades, recurring boss phases, endless online flow rankings through the dev server, and game over.
+- Shared rankings can be backed by Supabase through server-side environment variables. See `docs/SUPABASE_RANKINGS.md`.
 - The generated background asset is still stored at `assets/courtyard-bg.png`; the current game also draws a code-native scrolling starfield over the stage.
 - Work logs are stored under `.logs/`.
 - OpenAI API keys must not be placed in browser-side code. See `docs/OPENAI_SECURITY.md`.

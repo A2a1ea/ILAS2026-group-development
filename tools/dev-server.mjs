@@ -10,18 +10,16 @@ const rankingFile = join(root, ".logs", "rankings.json");
 const unknownWordsFile = join(root, ".logs", "unknown-words.json");
 const wordsFile = join(root, "data", "words-ja.json");
 const wordUpgradeSheetFile = join(root, "data", "word-upgrades.csv");
+const rankingLimit = 10;
+const rankingCommentLimit = 24;
+const supabaseUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseRankingTable = process.env.SUPABASE_RANKING_TABLE || "rankings";
 const kuromoji = require("kuromoji");
 const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")), "dict");
 const conversionForms = new Map([
   ["やきそば", ["焼きそば"]],
 ]);
-const ELEMENT_KEYWORDS = {
-  fire: ["ほのお", "ひ", "やき", "焼", "あつ", "ねつ", "なつ", "たいよう", "あか", "火", "炎", "熱", "夏", "赤", "日", "太陽"],
-  water: ["みず", "あめ", "うみ", "なみ", "しお", "ゆき", "こおり", "かわ", "水", "雨", "海", "波", "潮", "雪", "氷", "川"],
-  wind: ["かぜ", "そら", "はね", "とり", "はやて", "くも", "つばさ", "風", "空", "羽", "鳥", "雲", "翼"],
-  earth: ["つち", "いし", "やま", "もり", "すな", "くさ", "はな", "たね", "土", "石", "山", "森", "砂", "草", "花", "種"],
-  light: ["ひかり", "ほし", "つき", "あかり", "にじ", "きぼう", "ゆめ", "光", "星", "月", "明", "灯", "虹", "希望", "夢"],
-};
 const port = readPort();
 const host = readHost();
 let tokenizerPromise = null;
@@ -39,7 +37,11 @@ const mimeTypes = {
 const server = createServer((request, response) => {
   const url = new URL(request.url || "/", `http://${request.headers.host || "127.0.0.1"}`);
   if (url.pathname === "/api/rankings/stages") {
-    handleRankings(request, response);
+    handleRankings(request, response).catch((error) => {
+      console.error("Ranking API error:", error);
+      response.writeHead(500);
+      response.end("Ranking API error");
+    });
     return;
   }
   if (url.pathname === "/api/words/validate") {
@@ -103,9 +105,9 @@ function resolvePath(pathname) {
   return filePath === root || filePath.startsWith(root + sep) ? filePath : null;
 }
 
-function handleRankings(request, response) {
+async function handleRankings(request, response) {
   if (request.method === "GET") {
-    sendJson(response, readRankings());
+    sendJson(response, await readSharedRankings());
     return;
   }
 
@@ -115,26 +117,32 @@ function handleRankings(request, response) {
     return;
   }
 
-  let body = "";
-  request.on("data", (chunk) => {
-    body += chunk;
-    if (body.length > 4096) request.destroy();
-  });
-  request.on("end", () => {
-    try {
-      const entry = sanitizeRanking(JSON.parse(body));
-      if (!entry) {
-        response.writeHead(400);
-        response.end("Invalid ranking entry");
-        return;
-      }
-      const rankings = rankEntries([...readRankings(), entry]).slice(0, 10);
-      writeRankings(rankings);
-      sendJson(response, rankings);
-    } catch {
+  try {
+    const entry = sanitizeRanking(JSON.parse(await readRequestBody(request, 4096)));
+    if (!entry) {
       response.writeHead(400);
-      response.end("Invalid JSON");
+      response.end("Invalid ranking entry");
+      return;
     }
+    sendJson(response, await addSharedRanking(entry));
+  } catch {
+    response.writeHead(400);
+    response.end("Invalid JSON");
+  }
+}
+
+function readRequestBody(request, limit) {
+  return new Promise((resolveBody, rejectBody) => {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > limit) {
+        request.destroy();
+        rejectBody(new Error("Request body too large"));
+      }
+    });
+    request.on("end", () => resolveBody(body));
+    request.on("error", rejectBody);
   });
 }
 
@@ -143,17 +151,131 @@ function sanitizeRanking(entry) {
   const stages = Math.floor(Number(entry?.stages));
   const score = Math.floor(Number(entry?.score));
   if (!Number.isFinite(stages) || stages < 1 || !Number.isFinite(score) || score < 0) return null;
+  const usedLetters = sanitizeUsedLetters(entry?.usedLetters);
   return {
     name,
     stages,
     score,
+    usedLetters,
+    comment: sanitizeRankingComment(entry?.comment, usedLetters),
     date: new Date().toISOString(),
+  };
+}
+
+function sanitizeUsedLetters(letters) {
+  const source = Array.isArray(letters) ? letters.join("") : String(letters || "");
+  return [...normalizeKana(source)]
+    .filter((char, index, all) => /[ぁ-ん]/.test(char) && all.indexOf(char) === index)
+    .slice(0, 32);
+}
+
+function sanitizeRankingComment(comment, usedLetters) {
+  const allowed = new Set(usedLetters);
+  if (!allowed.size) return "";
+  return [...normalizeKana(comment || "")]
+    .filter((char) => allowed.has(char))
+    .join("")
+    .slice(0, rankingCommentLimit);
+}
+
+async function readSharedRankings() {
+  if (hasSupabaseRankingConfig()) {
+    try {
+      return await fetchSupabaseRankings();
+    } catch (error) {
+      console.warn("Supabase ranking GET failed; falling back to local rankings.", error.message);
+    }
+  }
+  return readRankings();
+}
+
+async function addSharedRanking(entry) {
+  if (hasSupabaseRankingConfig()) {
+    try {
+      const response = await fetch(supabaseRankingEndpoint(), {
+        method: "POST",
+        headers: supabaseHeaders({ preferRepresentation: true }),
+        body: JSON.stringify(toSupabaseRanking(entry)),
+      });
+      if (!response.ok) throw new Error(`POST ${response.status}`);
+      const posted = await parseSupabaseRankings(response);
+      if (posted.length) return posted;
+      return await fetchSupabaseRankings();
+    } catch (error) {
+      console.warn("Supabase ranking POST failed; falling back to local rankings.", error.message);
+    }
+  }
+  const rankings = rankEntries([...readRankings(), entry]).slice(0, rankingLimit);
+  writeRankings(rankings);
+  return rankings;
+}
+
+async function fetchSupabaseRankings() {
+  const response = await fetch(`${supabaseRankingEndpoint()}?select=*&order=stages.desc,score.desc,created_at.desc&limit=${rankingLimit}`, {
+    headers: supabaseHeaders(),
+  });
+  if (!response.ok) throw new Error(`GET ${response.status}`);
+  return parseSupabaseRankings(response);
+}
+
+function hasSupabaseRankingConfig() {
+  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+}
+
+function supabaseRankingEndpoint() {
+  return `${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseRankingTable)}`;
+}
+
+function supabaseHeaders({ preferRepresentation = false } = {}) {
+  const headers = {
+    Accept: "application/json",
+    apikey: supabaseServiceRoleKey,
+    Authorization: `Bearer ${supabaseServiceRoleKey}`,
+  };
+  if (preferRepresentation) {
+    headers["Content-Type"] = "application/json";
+    headers.Prefer = "return=representation";
+  }
+  return headers;
+}
+
+async function parseSupabaseRankings(response) {
+  const data = await response.json();
+  const entries = Array.isArray(data) ? data : [];
+  return rankEntries(entries.map(sanitizeStoredRanking).filter(Boolean));
+}
+
+function toSupabaseRanking(entry) {
+  return {
+    name: entry.name,
+    stages: entry.stages,
+    score: entry.score,
+    used_letters: entry.usedLetters,
+    comment: entry.comment,
+    created_at: entry.date,
+  };
+}
+
+function sanitizeStoredRanking(entry) {
+  const name = String(entry?.name || "Player").replace(/[^\w -]/g, "").trim().slice(0, 18) || "Player";
+  const stages = Math.floor(Number(entry?.stages));
+  const score = Math.floor(Number(entry?.score));
+  if (!Number.isFinite(stages) || stages < 1 || !Number.isFinite(score) || score < 0) return null;
+  const usedLetters = sanitizeUsedLetters(entry?.usedLetters || entry?.used_letters);
+  return {
+    name,
+    stages,
+    score,
+    usedLetters,
+    comment: sanitizeRankingComment(entry?.comment, usedLetters),
+    date: String(entry?.date || entry?.created_at || new Date().toISOString()),
   };
 }
 
 function readRankings() {
   try {
-    return rankEntries(JSON.parse(readFileSync(rankingFile, "utf8")));
+    const rankings = JSON.parse(readFileSync(rankingFile, "utf8").replace(/^\uFEFF/, ""));
+    return rankEntries(Array.isArray(rankings) ? rankings : [rankings]);
   } catch {
     return [];
   }
@@ -219,37 +341,24 @@ async function handleWordValidation(request, response, url) {
     }
   }
 
-<<<<<<< HEAD
-  const recognized = entry.recognized || [word];
-  const element = inferElement(word, recognized);
-  const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
-=======
   const power = Number.isFinite(entry.power)
     ? entry.power
     : Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   sendJson(response, {
     valid: true,
     word,
     source: entry.source || "local",
-    recognized,
+    recognized: entry.recognized || [word],
     upgrade: {
       valid: true,
       word,
       type: entry.type,
       label: entry.label,
       power,
-<<<<<<< HEAD
-      element,
-      title: `${word} ${entry.label}`,
-      description: `${describeUpgrade(entry.type, power)} / ${element} unlocked`,
-      recognized,
-=======
       title: entry.title || `${word} ${entry.label}`,
       description: entry.description || describeUpgrade(entry.type, power),
       highRoll: Boolean(entry.highRoll),
       recognized: entry.recognized || [word],
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
     },
   });
 }
@@ -470,14 +579,6 @@ function inferWordEntry(word) {
   return { type: "life", label: "生命" };
 }
 
-function inferElement(word, recognized = []) {
-  const combined = [word, ...recognized].join("");
-  for (const element of ["fire", "water", "wind", "earth", "light"]) {
-    if (ELEMENT_KEYWORDS[element].some((keyword) => combined.includes(keyword))) return element;
-  }
-  return "neutral";
-}
-
 function normalizeKana(word) {
   return String(word).trim().toLowerCase().replace(/[ァ-ン]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60));
 }
@@ -500,18 +601,10 @@ function describeUpgrade(type, power) {
 }
 
 function rankEntries(entries) {
-  const bestByName = new Map();
-  for (const entry of entries) {
-    if (!entry || !Number.isFinite(entry.stages) || !Number.isFinite(entry.score)) continue;
-    const current = bestByName.get(entry.name);
-    if (!current || entry.stages > current.stages || (entry.stages === current.stages && entry.score > current.score)) {
-      bestByName.set(entry.name, entry);
-    }
-  }
-  return [...bestByName.values()]
+  return (Array.isArray(entries) ? entries : [])
     .filter((entry) => entry && Number.isFinite(entry.stages) && Number.isFinite(entry.score))
-    .sort((a, b) => b.stages - a.stages || b.score - a.score)
-    .slice(0, 10);
+    .sort((a, b) => b.stages - a.stages || b.score - a.score || String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, rankingLimit);
 }
 
 function sendJson(response, data) {

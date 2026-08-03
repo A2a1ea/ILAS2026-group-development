@@ -10,59 +10,6 @@ const buffTrayEl = document.querySelector("#buffTray");
 const rankingListEl = document.querySelector("#rankingList");
 const overlay = document.querySelector("#overlay");
 const startButton = document.querySelector("#startButton");
-<<<<<<< HEAD
-const versusButton = document.querySelector("#versusButton");
-
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
-const PLAYER_RADIUS = 14;
-const HIT_RADIUS = 4;
-const PHASE_DURATION = 32;
-const MAX_HP = 5;
-const MAX_ACTIVE_ENEMIES = 5;
-const FIRST_STAGE_SPAWN_DELAY = 1.95;
-const ENEMY_TURN_TIME = 4.2;
-const ENEMY_TURN_Y = HEIGHT * 0.58;
-const ENEMY_TURN_EXIT_SPEED = 150;
-const ELEMENTS = ["neutral", "fire", "water", "wind", "earth", "light"];
-const ELEMENT_LABELS = {
-  neutral: "Neutral",
-  fire: "Fire",
-  water: "Water",
-  wind: "Wind",
-  earth: "Earth",
-  light: "Light",
-};
-const ELEMENT_COLORS = {
-  neutral: "#baf6ff",
-  fire: "#ff7d55",
-  water: "#5bc8ff",
-  wind: "#9af27c",
-  earth: "#d6aa65",
-  light: "#ffe680",
-};
-const ELEMENT_BEATS = {
-  fire: "wind",
-  water: "fire",
-  wind: "earth",
-  earth: "water",
-  light: "neutral",
-  neutral: null,
-};
-const ELEMENT_KEYWORDS = {
-  fire: ["ほのお", "ひ", "やき", "焼", "あつ", "ねつ", "なつ", "たいよう", "あか", "火", "炎", "熱", "夏", "赤", "日", "太陽"],
-  water: ["みず", "あめ", "うみ", "なみ", "しお", "ゆき", "こおり", "かわ", "水", "雨", "海", "波", "潮", "雪", "氷", "川"],
-  wind: ["かぜ", "そら", "はね", "とり", "はやて", "くも", "つばさ", "風", "空", "羽", "鳥", "雲", "翼"],
-  earth: ["つち", "いし", "やま", "もり", "すな", "くさ", "はな", "たね", "土", "石", "山", "森", "砂", "草", "花", "種"],
-  light: ["ひかり", "ほし", "つき", "あかり", "にじ", "きぼう", "ゆめ", "光", "星", "月", "明", "灯", "虹", "希望", "夢"],
-};
-const RANKING_ENDPOINT = "/api/rankings/stages";
-const WORD_ENDPOINT = "/api/words/validate";
-const LETTER_POOL = "あああいいいううええおおかかききくくけこさしすすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん";
-const REWARD_LETTERS = ["ね", "こ", "そ", "ら", "は", "な", "み", "ず", "ほ", "し", "あ", "め", "か", "ぜ", "つ", "き", "ま", "も", "り"];
-const BOARD_COLS = 7;
-const BOARD_ROWS = 5;
-=======
 const keyPresetEl = document.querySelector("#keyPreset");
 const controlHintEl = document.querySelector("#controlHint");
 const debugPanelEl = document.querySelector("#debugPanel");
@@ -85,6 +32,8 @@ const ENEMY_TURN_TIME = 4.2;
 const ENEMY_TURN_Y = HEIGHT * 0.58;
 const ENEMY_TURN_EXIT_SPEED = 150;
 const RANKING_ENDPOINT = "/api/rankings/stages";
+const RANKING_LIMIT = 10;
+const RANKING_COMMENT_LIMIT = 24;
 const WORD_ENDPOINT = "/api/words/validate";
 const LETTER_POOL = "あああいいいううええおおかかききくくけこさしすすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん";
 const REWARD_LETTERS = ["ね", "こ", "そ", "ら", "は", "な", "み", "ず", "ほ", "し", "あ", "め", "か", "ぜ", "つ", "き", "ま", "も", "り"];
@@ -92,20 +41,12 @@ const INVENTORY_LIMIT = 8;
 const UPGRADE_TILE_LIMIT = 3;
 const BOARD_COLS = 3;
 const BOARD_ROWS = 1;
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 const BOARD_SIZE = BOARD_COLS * BOARD_ROWS;
 const WORD_EFFECTS = [
   { word: "fast", label: "Fast", target: "self", duration: 8 },
   { word: "slow", label: "Slow", target: "enemy", duration: 7 },
   { word: "life", label: "Life", target: "self", duration: 0 },
 ];
-<<<<<<< HEAD
-const LOCAL_WORDS = new Set([
-  "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
-  "あかり", "あさひ", "いのち", "うてん", "おおかみ", "かがみ", "かみなり", "きつね", "きぼう", "くすり", "けむり", "こころ", "さくら", "しずく", "しっぽ", "しろ", "すばやさ", "たて", "ちから", "つばさ", "てんき", "ともしび", "ながれ", "はやて", "ひまわり", "ほのお", "まもり", "みらい", "やいば", "ゆめ", "りゅう",
-  "あか", "あつい", "ねつ", "なつ", "ひる", "やき", "やけ", "あめ", "かわ", "こおり", "しずく", "みなと", "かぜ", "はやて", "くも", "つばさ", "やま", "すな", "くさ", "たね", "あかり", "ひかり", "きぼう", "ゆめ",
-]);
-=======
 const KEY_PRESETS = {
   standard: {
     label: "WASD / J / K",
@@ -176,7 +117,6 @@ const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
   "あかり", "あさひ", "いのち", "うてん", "おおかみ", "かがみ", "かみなり", "きつね", "きぼう", "くすり", "けむり", "こころ", "さくら", "しずく", "しっぽ", "しろ", "すばやさ", "たて", "ちから", "つばさ", "てんき", "ともしび", "ながれ", "はやて", "ひまわり", "ほのお", "まもり", "みらい", "やいば", "ゆめ", "りゅう",
 ]);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 const WORD_TAGS = [
   { type: "attack", label: "攻撃", words: ["ほのお", "ひ", "やいば", "かみなり", "てき", "おに", "りゅう"] },
   { type: "mobility", label: "移動", words: ["はやて", "つばさ", "あし", "ねこ", "きつね", "とり", "はね", "すばやさ"] },
@@ -249,12 +189,8 @@ function createGame(mode = "title") {
       busy: false,
     },
     upgrades: [],
-<<<<<<< HEAD
-    unlockedElements: ["neutral"],
-    activeElement: "neutral",
-=======
+    usedUpgradeLetters: [],
     buffIcons: [],
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
     startingSlow: 0,
     effects: {
       fast: 0,
@@ -280,363 +216,6 @@ function createGame(mode = "title") {
         pattern: 0,
       },
     },
-<<<<<<< HEAD
-    playerBullets: [],
-    enemyBullets: [],
-    enemies: [],
-    particles: [],
-    letters: [],
-    boss: null,
-  };
-}
-
-function startGame() {
-  game = createGame("phase");
-  lastFrame = performance.now();
-  overlay.hidden = true;
-  canvas.focus();
-  setMessage("Phase 1: collect letters for your first upgrade");
-  requestAnimationFrame(loop);
-}
-
-function loop(now) {
-  const dt = Math.min((now - lastFrame) / 1000, 0.033);
-  lastFrame = now;
-  update(dt);
-  draw();
-  if (["phase", "final", "upgrade", "pause"].includes(game.mode)) requestAnimationFrame(loop);
-}
-
-function update(dt) {
-  if (game.mode === "pause") return;
-  if (game.mode === "upgrade") {
-    updateParticles(dt);
-    updateHud();
-    return;
-  }
-  game.time += dt;
-  game.phaseTime += dt;
-  game.stageTime = game.phaseTime;
-  game.scroll += dt * (game.mode === "final" ? 45 : 110);
-  game.flash = Math.max(0, game.flash - dt);
-  game.messageTimer = Math.max(0, game.messageTimer - dt);
-  updateEffects(dt);
-  updatePlayer(dt);
-  updatePlayerBullets(dt);
-  updateEnemies(dt);
-  updateEnemyBullets(dt);
-  updateLetterSpawner(dt);
-  updateLetters(dt);
-  updateParticles(dt);
-  updateStage(dt);
-  checkCollisions();
-  updateHud();
-  sendVersusState();
-}
-
-function startVersusMode() {
-  stopVersus();
-  versus = createVersusState();
-  versus.enabled = true;
-  versus.roomId = localStorage.getItem("vbg-versus-room") || "default";
-  showVersusWaitingOverlay();
-  connectVersus();
-}
-
-function showVersusWaitingOverlay() {
-  game = createGame("title");
-  overlay.hidden = false;
-  overlay.querySelector("h1").textContent = "対戦待機中";
-  overlay.querySelector("p").textContent = `Room ${versus.roomId}: 相手が入ったら自動で始まります。`;
-  startButton.textContent = "ループモード";
-  if (versusButton) versusButton.textContent = "待機中";
-  const hint = overlay.querySelector(".hint");
-  if (hint) hint.textContent = "別ブラウザ、別端末、またはシークレットウィンドウから同じURLで対戦を押すとマッチします。";
-  updateHud();
-  draw();
-}
-
-function connectVersus() {
-  if (!versus.enabled) return;
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const socket = new WebSocket(`${protocol}//${location.host}/ws/versus`);
-  versus.socket = socket;
-  versus.message = "connecting";
-
-  socket.addEventListener("open", () => {
-    sendVersus("join", {
-      roomId: versus.roomId,
-      name: readPlayerName(),
-      clientId: readVersusClientId(),
-    });
-  });
-
-  socket.addEventListener("message", (event) => {
-    try {
-      handleVersusSocketMessage(JSON.parse(event.data));
-    } catch {
-      versus.message = "bad packet";
-    }
-  });
-
-  socket.addEventListener("close", () => {
-    if (!versus.enabled) return;
-    versus.connected = false;
-    versus.message = "reconnecting";
-    setTimeout(() => {
-      if (versus.enabled) connectVersus();
-    }, 1000);
-  });
-
-  socket.addEventListener("error", () => {
-    versus.message = "connection error";
-  });
-}
-
-function handleVersusSocketMessage(message) {
-  if (!message || typeof message.type !== "string") return;
-  if (message.type === "hello") {
-    versus.playerId = message.id;
-    return;
-  }
-  if (message.type === "joined") {
-    versus.connected = true;
-    versus.peers = Array.isArray(message.peers) ? message.peers : [];
-    versus.message = versus.peers.length ? "matched" : "waiting for rival";
-    if (versus.peers.length) {
-      startMatchedVersus(`VS room ${message.roomId}: matched`);
-    } else {
-      showVersusWaitingOverlay();
-    }
-    return;
-  }
-  if (message.type === "peer-joined") {
-    versus.peers = Array.isArray(message.peers) ? message.peers : versus.peers;
-    versus.message = `matched with ${message.name || "Rival"}`;
-    startMatchedVersus(versus.message);
-    return;
-  }
-  if (message.type === "peer-left") {
-    versus.peers = Array.isArray(message.peers) ? message.peers : [];
-    versus.message = "waiting for rival";
-    return;
-  }
-  if (message.type === "peer-state") {
-    versus.peerState = {
-      ...message.state,
-      id: message.from,
-      name: message.name || "Rival",
-      receivedAt: performance.now(),
-    };
-    return;
-  }
-  if (message.type === "peer-word") {
-    const word = message.word?.word || message.word || "";
-    versus.lastWord = word;
-    versus.message = `${message.name || "Rival"} made ${word}`;
-    applyVersusSabotage(message.word, message.name || "Rival");
-    setMessage(versus.message);
-    return;
-  }
-  if (message.type === "peer-finish") {
-    versus.message = `${message.name || "Rival"} finished: ${message.result}`;
-    setMessage(versus.message);
-  }
-}
-
-function startMatchedVersus(message) {
-  if (!versus.enabled || versus.started) {
-    setMessage(message);
-    forceSendVersusState();
-    return;
-  }
-  versus.started = true;
-  startGame();
-  setMessage(message);
-  if (versusButton) versusButton.textContent = "対戦";
-  forceSendVersusState();
-  versus.heartbeatTimer = setInterval(forceSendVersusState, 500);
-}
-
-function sendVersus(type, payload = {}) {
-  const socket = versus.socket;
-  if (!versus.enabled || !socket || socket.readyState !== WebSocket.OPEN) return;
-  socket.send(JSON.stringify({ type, ...payload }));
-}
-
-function sendVersusState() {
-  if (!versus.enabled || !versus.connected) return;
-  if (!["phase", "final", "upgrade", "pause", "game_clear", "game_over"].includes(game.mode)) return;
-  const now = performance.now();
-  if (now - versus.lastSent < 120) return;
-  versus.lastSent = now;
-  sendVersusStatePayload();
-}
-
-function forceSendVersusState() {
-  if (!versus.enabled || !versus.connected) return;
-  if (!["phase", "final", "upgrade", "pause", "game_clear", "game_over"].includes(game.mode)) return;
-  versus.lastSent = performance.now();
-  sendVersusStatePayload();
-}
-
-function sendVersusStatePayload() {
-  sendVersus("state", {
-    state: {
-      mode: game.mode,
-      score: game.score,
-      hp: game.player.hp,
-      maxHp: game.player.maxHp,
-      phase: game.phase,
-      phaseTime: game.phaseTime,
-      phaseGoal: game.phaseGoal,
-      stagesCleared: game.stagesCleared,
-      inventory: game.inventory.length,
-      words: game.upgradeBoard.foundWords.length,
-      stageView: createVersusStageSnapshot(),
-      bossHp: game.boss ? game.boss.hp : null,
-      bossMaxHp: game.boss ? game.boss.maxHp : null,
-      x: game.player.x,
-      y: game.player.y,
-    },
-  });
-}
-
-function createVersusStageSnapshot() {
-  return {
-    enemies: game.enemies.slice(0, 10).map((enemy) => ({
-      x: enemy.x,
-      y: enemy.y,
-      radius: enemy.radius,
-      type: enemy.type,
-      element: enemy.element,
-      letterShield: Boolean(enemy.letterShield),
-    })),
-    enemyBullets: game.enemyBullets.slice(0, 80).map((bullet) => ({
-      x: bullet.x,
-      y: bullet.y,
-      radius: bullet.radius,
-      color: bullet.color,
-      element: bullet.element,
-    })),
-    playerBullets: game.playerBullets.slice(0, 40).map((bullet) => ({
-      x: bullet.x,
-      y: bullet.y,
-      radius: bullet.radius,
-      type: bullet.type,
-      char: bullet.char,
-      element: bullet.element,
-    })),
-    letters: game.letters.slice(0, 16).map((letter) => ({
-      x: letter.x,
-      y: letter.y,
-      radius: letter.radius,
-      char: letter.char,
-      powered: Boolean(letter.powered),
-    })),
-    boss: game.boss ? {
-      x: game.boss.x,
-      y: game.boss.y,
-      radius: game.boss.radius,
-      hp: game.boss.hp,
-      maxHp: game.boss.maxHp,
-      element: game.boss.element,
-      weakness: game.boss.weakness,
-    } : null,
-  };
-}
-
-function sendVersusWord(word, upgrade) {
-  if (!versus.enabled || !versus.connected) return;
-  sendVersus("word", {
-    word: {
-      word: word.word,
-      powered: Boolean(word.powered),
-      direction: word.direction,
-      title: upgrade.title,
-      type: upgrade.type,
-      power: upgrade.power,
-    },
-  });
-}
-
-function applyVersusSabotage(wordPayload, rivalName) {
-  if (!versus.enabled || !["phase", "final"].includes(game.mode)) return;
-  const type = wordPayload?.type || "pattern";
-  const power = clamp(Number(wordPayload?.power) || 1, 1, 6);
-  const word = wordPayload?.word || "word";
-  if (type === "attack") {
-    const count = 3 + Math.floor(power / 2);
-    for (let i = 0; i < count; i += 1) {
-      const x = 70 + (i * (WIDTH - 140)) / Math.max(1, count - 1);
-      fireAimed(x, 42, 160 + power * 18, 6);
-    }
-    setMessage(`${rivalName} の ${word}: 狙い弾`);
-    return;
-  }
-  if (type === "pattern") {
-    fireCircle(WIDTH / 2, 120, 10 + power * 2, 120 + power * 12, "#ff9f6e", game.time);
-    setMessage(`${rivalName} の ${word}: 弾幕`);
-    return;
-  }
-  if (type === "control") {
-    game.effects.jam = Math.max(game.effects.jam || 0, 2.4 + power * 0.45);
-    setMessage(`${rivalName} の ${word}: 操作妨害`);
-    return;
-  }
-  if (type === "mobility") {
-    const direction = Math.random() < 0.5 ? 1 : -1;
-    const startX = direction > 0 ? -20 : WIDTH + 20;
-    const vx = direction * (120 + power * 16);
-    for (let i = 0; i < 4 + power; i += 1) {
-      fireBullet(startX, 120 + i * 76, vx, 26 * Math.sin(i), 6, "#ffd36e");
-    }
-    setMessage(`${rivalName} の ${word}: 横流し弾`);
-    return;
-  }
-  spawnVersusShield(power);
-  setMessage(`${rivalName} の ${word}: 盾敵`);
-}
-
-function spawnVersusShield(power) {
-  const x = 70 + Math.random() * (WIDTH - 140);
-  game.enemies.push({
-    type: "D",
-    x,
-    y: -28,
-    baseX: x,
-    vx: 0,
-    vy: 58 + power * 6,
-    hp: 3 + Math.ceil(power / 2),
-    radius: 23,
-    score: 160,
-    shootTimer: 1.4,
-    wave: Math.random() * 8,
-    letterShield: true,
-  });
-}
-
-function sendVersusFinish(result) {
-  if (!versus.enabled || !versus.connected) return;
-  sendVersus("finish", {
-    result,
-    score: game.score,
-    stagesCleared: game.stagesCleared,
-  });
-}
-
-function stopVersus() {
-  if (versus.heartbeatTimer) clearInterval(versus.heartbeatTimer);
-  if (versus.socket) {
-    const socket = versus.socket;
-    versus.socket = null;
-    socket.close();
-  }
-  versus = createVersusState();
-  if (versusButton) versusButton.textContent = "対戦";
-}
-
-=======
     playerBullets: [],
     enemyBullets: [],
     enemies: [],
@@ -689,7 +268,6 @@ function update(dt) {
   updateHud();
 }
 
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function updateStage(dt) {
   if (game.mode === "final") {
     updateBoss(dt);
@@ -724,26 +302,6 @@ function updatePlayer(dt) {
   if (isActionPressed("up")) dy -= 1;
   if (isActionPressed("down")) dy += 1;
   const speedBoost = game.effects.fast > 0 ? 1.45 : 1;
-<<<<<<< HEAD
-  const jamScale = game.effects.jam > 0 ? 0.68 : 1;
-  const speed = (keys.has("shift") ? p.slowSpeed : p.speed) * speedBoost * inventoryMoveScale() * jamScale;
-  const len = Math.hypot(dx, dy) || 1;
-  p.x = clamp(p.x + (dx / len) * speed * dt, PLAYER_RADIUS, WIDTH - PLAYER_RADIUS);
-  p.y = clamp(p.y + (dy / len) * speed * dt, 78, HEIGHT - PLAYER_RADIUS);
-  p.invuln = Math.max(0, p.invuln - dt);
-  p.shotCooldown = Math.max(0, p.shotCooldown - dt);
-
-  if (keys.has("j") && p.shotCooldown <= 0) {
-    const damage = 8 + p.bulletDamageBonus;
-    const element = game.activeElement;
-    game.playerBullets.push({ x: p.x - 7, y: p.y - 18, vx: 0, vy: -720, radius: 4, damage, type: "normal", element });
-    game.playerBullets.push({ x: p.x + 7, y: p.y - 18, vx: 0, vy: -720, radius: 4, damage, type: "normal", element });
-    if (p.spread > 0) {
-      game.playerBullets.push({ x: p.x, y: p.y - 18, vx: -120, vy: -650, radius: 4, damage: Math.max(6, damage - 2), type: "normal", element });
-      game.playerBullets.push({ x: p.x, y: p.y - 18, vx: 120, vy: -650, radius: 4, damage: Math.max(6, damage - 2), type: "normal", element });
-    }
-    p.shotCooldown = Math.max(0.045, 0.09 * p.fireRateMultiplier);
-=======
   const speed = (isActionPressed("focus") ? p.slowSpeed : p.speed) * speedBoost * inventoryMoveScale();
   const len = Math.hypot(dx, dy) || 1;
   p.x = clamp(p.x + (dx / len) * speed * dt, PLAYER_RADIUS, WIDTH - PLAYER_RADIUS);
@@ -756,7 +314,6 @@ function updatePlayer(dt) {
     const damage = (8 + p.bulletDamageBonus) * attribute.damage;
     fireAttributeShots(attribute, damage);
     p.shotCooldown = Math.max(attribute.cooldown || 0.045, (attribute.fireDelay || 0.09) * p.fireRateMultiplier);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   }
 }
 
@@ -884,104 +441,6 @@ function cycleShotAttribute() {
 }
 
 function spawnEnemy() {
-<<<<<<< HEAD
-  const type = chooseEnemyType();
-  const x = 50 + Math.random() * (WIDTH - 100);
-  const hpScale = 0.75 + (game.phase - 1) * 0.24;
-  const speedScale = 0.72 + (game.phase - 1) * 0.12;
-  const turnTimer = ENEMY_TURN_TIME + Math.random() * 0.9;
-  const element = enemyElementForType(type);
-  if (type === "A") {
-    game.enemies.push({ type: "A", element, x, y: -24, vx: 0, vy: 96 * speedScale, turnTimer, turning: false, hp: Math.round(22 * hpScale), radius: 18, score: 100, shootTimer: 1.35 });
-  } else if (type === "B") {
-    game.enemies.push({ type: "B", element, x, y: -24, baseX: x, vx: 0, vy: 72 * speedScale, turnTimer, turning: false, hp: Math.round(35 * hpScale), radius: 21, score: 160, shootTimer: 1.15, wave: Math.random() * 8 });
-  } else if (type === "C") {
-    game.enemies.push({ type: "C", element, x, y: -30, vx: 0, vy: 125 * speedScale, turnTimer, turning: false, hp: Math.round(55 * hpScale), radius: 24, score: 240, shootTimer: 1.35, hold: 2.6 });
-  } else {
-    game.enemies.push({ type: "D", element, x, y: -28, baseX: x, vx: 0, vy: 58 * speedScale, turnTimer, turning: false, hp: Math.round(3 + game.phase), radius: 23, score: 280, shootTimer: 1.6, wave: Math.random() * 8, letterShield: true });
-  }
-}
-
-function enemyElementForType(type) {
-  if (type === "A") return "fire";
-  if (type === "B") return "water";
-  if (type === "C") return "wind";
-  if (type === "D") return "earth";
-  return "neutral";
-}
-
-function enemySpawnDelay() {
-  const stagePressure = Math.min(0.9, (game.phase - 1) * 0.24);
-  const timePressure = Math.min(0.35, game.phaseTime * 0.007);
-  return Math.max(0.48, FIRST_STAGE_SPAWN_DELAY - stagePressure - timePressure);
-}
-
-function chooseEnemyType() {
-  if (game.phase <= 1) return "A";
-  const letterChance = Math.min(0.22, 0.08 + (game.phase - 2) * 0.05);
-  const purpleChance = game.phase >= 3 ? 0.22 : 0;
-  const yellowChance = Math.min(0.54, (game.phase - 1) * 0.24);
-  const roll = Math.random();
-  if (roll < letterChance) return "D";
-  const adjustedRoll = roll - letterChance;
-  if (adjustedRoll < purpleChance) return "C";
-  if (adjustedRoll < purpleChance + yellowChance) return "B";
-  return "A";
-}
-
-function updateEnemies(dt) {
-  const slowScale = enemySlowScale();
-  const densityScale = stageDensityScale();
-  for (const e of game.enemies) {
-    e.turnTimer -= dt * slowScale;
-    if (!e.turning && (e.turnTimer <= 0 || e.y >= ENEMY_TURN_Y)) {
-      e.turning = true;
-      e.vy = -Math.max(Math.abs(e.vy), ENEMY_TURN_EXIT_SPEED);
-      e.hold = 0;
-    }
-
-    if (e.type === "B" || e.type === "D") {
-      e.wave += dt * 4.2 * slowScale;
-      e.x = clamp(e.baseX + Math.sin(e.wave) * (e.type === "D" ? 44 : 60), e.radius, WIDTH - e.radius);
-    }
-
-    if (!e.turning && e.type === "C" && e.y > 145 && e.hold > 0) {
-      e.hold -= dt;
-    } else {
-      e.y += e.vy * dt * slowScale;
-    }
-
-    e.shootTimer -= dt;
-    if (e.shootTimer <= 0) {
-      fireEnemyPattern(e);
-      e.shootTimer = enemyShootDelay(e.type, densityScale);
-    }
-  }
-  game.enemies = game.enemies.filter((e) => e.y > -80 && e.y < HEIGHT + 50 && e.hp > 0);
-}
-
-function fireEnemyPattern(enemy) {
-  const density = stageDensityScale();
-  if (enemy.type === "A") {
-    fireAimed(enemy.x, enemy.y, 145 + density * 6, 7, enemy.element);
-    if (density >= 2) {
-      fireBullet(enemy.x, enemy.y, -45, 175, 7, "#ff6b9a", enemy.element);
-      fireBullet(enemy.x, enemy.y, 45, 175, 7, "#ff6b9a", enemy.element);
-    }
-  } else if (enemy.type === "B") {
-    const spread = Math.min(2 + density, 6);
-    for (let i = -spread; i <= spread; i += 1) fireBullet(enemy.x, enemy.y, i * 28, 190, 7, "#ff8db3", enemy.element);
-  } else {
-    fireCircle(enemy.x, enemy.y, 10 + density * 2, 140 + density * 8, "#ffcf6f", 0, enemy.element);
-  }
-}
-
-function enemyShootDelay(type, density) {
-  const baseTimer = type === "C" ? 1.2 : type === "B" ? 1.45 : 1.75;
-  return Math.max(0.5, baseTimer - density * 0.08);
-}
-
-=======
   const type = chooseEnemyType();
   const x = 50 + Math.random() * (WIDTH - 100);
   const hpScale = 0.75 + (game.phase - 1) * 0.24;
@@ -1069,7 +528,6 @@ function enemyShootDelay(type, density) {
   return Math.max(0.5, baseTimer - density * 0.08);
 }
 
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function updateBoss(dt) {
   const boss = game.boss;
   if (!boss) return;
@@ -1090,12 +548,6 @@ function updateBoss(dt) {
   boss.x = WIDTH / 2 + Math.sin(game.time * rate * slowScale) * movement;
 }
 
-<<<<<<< HEAD
-function fireAimed(x, y, speed, radius, element = currentEnemyElement()) {
-  const angle = Math.atan2(game.player.y - y, game.player.x - x);
-  fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, radius, "#ff6b9a", element);
-}
-=======
 function fireBossPattern(boss, density) {
   if (boss.design.id === "ember") {
     if (boss.phase === 0) fireFan(boss.x, boss.y + 24, Math.PI / 2, 9 + density * 2, 0.85, 178 + density * 10, boss.design.color);
@@ -1107,7 +559,6 @@ function fireBossPattern(boss, density) {
     }
     return;
   }
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 
   if (boss.design.id === "azure") {
     if (boss.phase === 0) fireCircle(boss.x, boss.y + 10, 16 + density * 3, 128 + density * 7, boss.design.color, boss.entry * 1.35);
@@ -1137,37 +588,6 @@ function fireBossPattern(boss, density) {
     fireCircle(boss.x, boss.y + 10, 16 + density * 2, 138 + density * 8, boss.design.accent, boss.entry * 1.2);
   }
 }
-<<<<<<< HEAD
-
-function fireCircle(x, y, count, speed, color, offset = 0, element = currentEnemyElement()) {
-  for (let i = 0; i < count; i += 1) {
-    const angle = offset + (Math.PI * 2 * i) / count;
-    fireBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 6, color, element);
-  }
-}
-
-function fireBullet(x, y, vx, vy, radius, color, element = currentEnemyElement()) {
-  game.enemyBullets.push({ x, y, vx, vy, radius, color: ELEMENT_COLORS[element] || color, element });
-}
-
-function currentEnemyElement() {
-  return game.boss?.element || "neutral";
-}
-
-function updateEnemyBullets(dt) {
-  const slowScale = enemySlowScale() * inventoryBulletPressure();
-  for (const b of game.enemyBullets) {
-    b.x += b.vx * dt * slowScale;
-    b.y += b.vy * dt * slowScale;
-  }
-  game.enemyBullets = game.enemyBullets.filter((b) => b.x > -40 && b.x < WIDTH + 40 && b.y > -50 && b.y < HEIGHT + 50);
-}
-
-function enemySlowScale() {
-  return game.effects.slow > 0 ? 0.55 : 1;
-}
-
-=======
 
 function fireAimed(x, y, speed, radius) {
   const angle = Math.atan2(game.player.y - y, game.player.x - x);
@@ -1206,7 +626,6 @@ function enemySlowScale() {
   return game.effects.slow > 0 ? 0.55 : 1;
 }
 
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function inventoryRisk() {
   return Math.max(0, game.inventory.length - 4);
 }
@@ -1269,7 +688,6 @@ function fireStoredLetter() {
   }
   normalizeSelectedLetterIndex();
   const char = inventoryChar(item);
-<<<<<<< HEAD
   game.playerBullets.push({
     type: "letter",
     char,
@@ -1280,19 +698,6 @@ function fireStoredLetter() {
     vy: -560,
     radius: isPoweredLetter(item) ? 16 : 13,
     damage: isPoweredLetter(item) ? 12 : 8,
-    element: game.activeElement,
-=======
-  game.playerBullets.push({
-    type: "letter",
-    char,
-    powered: isPoweredLetter(item),
-    x: game.player.x,
-    y: game.player.y - 22,
-    vx: 0,
-    vy: -560,
-    radius: isPoweredLetter(item) ? 16 : 13,
-    damage: isPoweredLetter(item) ? 12 : 8,
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   });
   setMessage(`Discarded ${char}`);
 }
@@ -1473,7 +878,6 @@ function renderUpgradeBoard() {
           game.upgradeBoard.message = game.upgradeBoard.activeIndex == null
             ? "Place up to three letters. Make one compact word."
             : "Now choose any + square.";
-<<<<<<< HEAD
           renderUpgradeBoard();
           return;
         }
@@ -1487,21 +891,6 @@ function renderUpgradeBoard() {
     empty.textContent = "No letters collected. Confirm will continue without an upgrade.";
     rack.append(empty);
   }
-=======
-          renderUpgradeBoard();
-          return;
-        }
-        placeLetterFromRack(index);
-      });
-      rack.append(letter);
-    });
-  } else {
-    const empty = document.createElement("span");
-    empty.className = "board-note";
-    empty.textContent = "No letters collected. You need a valid 3-letter word for an upgrade.";
-    rack.append(empty);
-  }
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   panel.append(rack);
 
   const actions = document.createElement("span");
@@ -1577,12 +966,7 @@ async function forgeSelectedWord() {
   if (game.upgradeBoard.choosing) return;
   const validUpgrades = game.upgradeBoard.pendingUpgrades;
   if (!validUpgrades.length) {
-<<<<<<< HEAD
     advanceAfterUpgrade();
-=======
-    game.upgradeBoard.message = "Make a valid 3-letter word before choosing an upgrade.";
-    renderUpgradeBoard();
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
     return;
   }
   const seedUpgrade = validUpgrades[validUpgrades.length - 1];
@@ -1602,7 +986,7 @@ function chooseUpgradeReward(index) {
   if (!game.upgradeBoard.choosing) return;
   const choice = game.upgradeBoard.choiceOptions[index];
   if (!choice) return;
-  consumePlacedLetters();
+  recordUpgradeLetters(consumePlacedLetters());
   applyDynamicUpgrade(choice.upgrade);
   if (choice.risk) applyUpgradeRisk(choice.risk);
   advanceAfterUpgrade();
@@ -2009,11 +1393,20 @@ function pushLineWord(words, cells, direction) {
 }
 
 function consumePlacedLetters() {
-  const selected = getPlacedCells().map((cell) => cell.sourceIndex).sort((a, b) => b - a);
+  const placed = getPlacedCells();
+  const usedLetters = placed.map((cell) => cell.char);
+  const selected = placed.map((cell) => cell.sourceIndex).sort((a, b) => b - a);
   for (const index of selected) game.inventory.splice(index, 1);
   normalizeSelectedLetterIndex();
   game.upgradeBoard.cells = Array(BOARD_SIZE).fill(null);
   game.upgradeBoard.activeIndex = null;
+  return usedLetters;
+}
+
+function recordUpgradeLetters(letters) {
+  for (const char of letters) {
+    if (char && !game.usedUpgradeLetters.includes(char)) game.usedUpgradeLetters.push(char);
+  }
 }
 
 async function analyzeWord(word) {
@@ -2038,32 +1431,6 @@ function normalizeKana(word) {
 }
 
 function createWordUpgrade(word) {
-<<<<<<< HEAD
-  const combined = word;
-  const tag = WORD_TAGS.find((candidate) => candidate.words.some((keyword) => combined.includes(keyword))) || inferWordTag(word);
-  const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
-  const element = inferElement(word);
-  return {
-    valid: true,
-    word,
-    type: tag.type,
-    label: tag.label,
-    power,
-    element,
-    title: `${word} ${tag.label}`,
-    description: `${describeDynamicUpgrade(tag.type, power)} / ${ELEMENT_LABELS[element]} unlocked`,
-  };
-}
-
-function inferElement(word, recognized = []) {
-  const combined = [word, ...recognized].join("");
-  for (const element of ["fire", "water", "wind", "earth", "light"]) {
-    if (ELEMENT_KEYWORDS[element].some((keyword) => combined.includes(keyword))) return element;
-  }
-  return "neutral";
-}
-
-=======
   const combined = word;
   const tag = WORD_TAGS.find((candidate) => candidate.words.some((keyword) => combined.includes(keyword))) || inferWordTag(word);
   const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
@@ -2078,7 +1445,6 @@ function inferElement(word, recognized = []) {
   };
 }
 
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function inferWordTag(word) {
   if (/[やみかげ]/.test(word) && word.length >= 3) return { type: "pattern", label: "闇" };
   if (/[かきくけこがぎぐげご]/.test(word)) return { type: "attack", label: "攻撃" };
@@ -2087,19 +1453,11 @@ function inferWordTag(word) {
   if (word.length <= 2) return { type: "mobility", label: "移動" };
   return { type: "life", label: "生命" };
 }
-<<<<<<< HEAD
 
 function rareLetterBonus(word) {
   return [...word].filter((char) => "ゃゅょっん".includes(char)).length;
 }
 
-=======
-
-function rareLetterBonus(word) {
-  return [...word].filter((char) => "ゃゅょっん".includes(char)).length;
-}
-
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function describeDynamicUpgrade(type, power) {
   if (type === "attack") return `炎: 弾威力 +${power}。強化で重い火柱弾が増える。`;
   if (type === "mobility") return "風: 移動速度と低速性能アップ。強化で横風の針弾が増える。";
@@ -2111,11 +1469,7 @@ function describeDynamicUpgrade(type, power) {
 
 function applyDynamicUpgrade(upgrade) {
   const p = game.player;
-<<<<<<< HEAD
-  unlockElement(upgrade.element);
-=======
   increaseAttributeMod(upgrade.type, upgrade.highRoll ? 2 : 1);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   if (upgrade.type === "attack") {
     p.bulletDamageBonus += upgrade.power;
   } else if (upgrade.type === "mobility") {
@@ -2141,52 +1495,9 @@ function applyDynamicUpgrade(upgrade) {
   setMessage(upgrade.description);
 }
 
-<<<<<<< HEAD
-function unlockElement(element) {
-  if (!element || !ELEMENTS.includes(element) || game.unlockedElements.includes(element)) return;
-  game.unlockedElements.push(element);
-  game.activeElement = element;
-}
-
-function switchElementByNumber(key) {
-  const index = Number(key) - 1;
-  const element = ELEMENTS[index];
-  if (!element || !game.unlockedElements.includes(element)) return false;
-  game.activeElement = element;
-  setMessage(`${ELEMENT_LABELS[element]} shot`);
-  return true;
-}
-
-function cycleElement(direction) {
-  const unlocked = ELEMENTS.filter((element) => game.unlockedElements.includes(element));
-  if (!unlocked.length) return false;
-  const currentIndex = Math.max(0, unlocked.indexOf(game.activeElement));
-  const nextIndex = (currentIndex + direction + unlocked.length) % unlocked.length;
-  game.activeElement = unlocked[nextIndex];
-  setMessage(`${ELEMENT_LABELS[game.activeElement]} shot`);
-  return true;
-}
-
-function startNextPhase() {
-  game.phase += 1;
-  game.stage = game.phase;
-  game.phaseTime = 0;
-  game.effects.slow = game.startingSlow;
-  if (isBossPhase(game.phase)) {
-    startFinalBattle();
-    return;
-  }
-  game.phaseGoal = PHASE_DURATION + 6;
-  game.spawnTimer = 1;
-  game.letterTimer = 0.7;
-  game.mode = "phase";
-  lastFrame = performance.now();
-  setMessage(`Phase ${game.phase}: survive and collect more letters`);
-=======
 function increaseAttributeMod(type, amount) {
   if (!game.player.attributeMods || !Object.hasOwn(game.player.attributeMods, type)) return;
   game.player.attributeMods[type] = Math.min(5, game.player.attributeMods[type] + amount);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 }
 
 function createHighRollUpgrade(word) {
@@ -2253,13 +1564,7 @@ function startFinalBattle() {
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
   const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
-<<<<<<< HEAD
-  const element = bossElementForPhase(game.phase);
-  const weakness = elementWeakness(element);
-  unlockElement(weakness);
-=======
   const design = debugBossDesign() || selectBossDesign(game.phase);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   game.boss = {
     x: WIDTH / 2,
     y: -70,
@@ -2269,38 +1574,10 @@ function startFinalBattle() {
     phase: 0,
     attackTimer: 0,
     entry: 0,
-<<<<<<< HEAD
-    element,
-    weakness,
-  };
-  lastFrame = performance.now();
-  setMessage(`Boss ${Math.floor(game.phase / 3)}: ${ELEMENT_LABELS[element]} weak to ${ELEMENT_LABELS[weakness]}`);
-}
-
-function bossElementForPhase(phase) {
-  const cycle = ["fire", "water", "wind", "earth", "light"];
-  return cycle[(Math.floor(phase / 3) - 1) % cycle.length] || "fire";
-}
-
-function nextBossPhase() {
-  return Math.ceil((game.phase + (game.mode === "final" ? 0 : 1)) / 3) * 3;
-}
-
-function bossElementInfoText() {
-  if (game.boss) return `Boss: ${ELEMENT_LABELS[game.boss.element]} / Weak: ${ELEMENT_LABELS[game.boss.weakness]}`;
-  const phase = nextBossPhase();
-  const element = bossElementForPhase(phase);
-  return `Next Boss P${phase}: ${ELEMENT_LABELS[element]} / Weak: ${ELEMENT_LABELS[elementWeakness(element)]}`;
-}
-
-function elementWeakness(element) {
-  return Object.keys(ELEMENT_BEATS).find((candidate) => ELEMENT_BEATS[candidate] === element) || "neutral";
-=======
     design,
   };
   lastFrame = performance.now();
   setMessage(design.message);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 }
 
 function selectBossDesign(phase) {
@@ -2325,54 +1602,6 @@ function restoreOverlayHint() {
   const hint = overlay.querySelector(".hint");
   hint.textContent = KEY_PRESETS[keyPreset].hint;
 }
-<<<<<<< HEAD
-
-function checkCollisions() {
-  for (let i = game.playerBullets.length - 1; i >= 0; i -= 1) {
-    const bullet = game.playerBullets[i];
-    let consumed = false;
-    for (let j = game.enemyBullets.length - 1; j >= 0; j -= 1) {
-      const enemyBullet = game.enemyBullets[j];
-      if (elementBeats(bullet.element, enemyBullet.element) && distance(bullet, enemyBullet) < bullet.radius + enemyBullet.radius + 5) {
-        game.enemyBullets.splice(j, 1);
-        game.score += 18;
-        burst(enemyBullet.x, enemyBullet.y, ELEMENT_COLORS[bullet.element] || "#eef8ff", 6);
-        consumed = true;
-        break;
-      }
-    }
-    for (let j = game.letters.length - 1; j >= 0; j -= 1) {
-      if (consumed) break;
-      const letter = game.letters[j];
-      if (distance(bullet, letter) < bullet.radius + letter.radius) {
-        game.letters.splice(j, 1);
-        collectLetter(letter);
-        consumed = true;
-        break;
-      }
-    }
-    for (const enemy of game.enemies) {
-      if (consumed) break;
-      if (distance(bullet, enemy) < bullet.radius + enemy.radius) {
-        if (enemy.letterShield && bullet.type !== "letter") {
-          consumed = true;
-          burst(bullet.x, bullet.y, "#d6ff8f", 5);
-          setMessage("文字シールドにはKの文字弾が効く。");
-          break;
-        }
-        enemy.hp -= enemy.letterShield ? 1 : bullet.damage;
-        consumed = true;
-        burst(bullet.x, bullet.y, enemy.letterShield ? "#d6ff8f" : "#79e7ff", enemy.letterShield ? 8 : 4);
-        if (enemy.hp <= 0) destroyEnemy(enemy);
-        break;
-      }
-    }
-    if (!consumed && game.boss && distance(bullet, game.boss) < bullet.radius + game.boss.radius) {
-      const weaknessHit = bullet.element === game.boss.weakness;
-      game.boss.hp -= weaknessHit ? bullet.damage * 2.2 : bullet.damage;
-      consumed = true;
-      burst(bullet.x, bullet.y, weaknessHit ? ELEMENT_COLORS[bullet.element] : "#ffd36e", weaknessHit ? 8 : 3);
-=======
 
 function checkCollisions() {
   for (let i = game.playerBullets.length - 1; i >= 0; i -= 1) {
@@ -2409,55 +1638,10 @@ function checkCollisions() {
       consumed = true;
       const burstColor = multiplier > 1 ? game.boss.design.accent : multiplier < 1 ? "rgba(238, 248, 255, 0.55)" : game.boss.design.color;
       burst(bullet.x, bullet.y, burstColor, multiplier > 1 ? 8 : 3);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
       if (game.boss.hp <= 0) {
         clearBossPhase();
         return;
       }
-<<<<<<< HEAD
-    }
-    if (consumed) game.playerBullets.splice(i, 1);
-  }
-
-  const p = game.player;
-  if (p.invuln <= 0) {
-    for (const bullet of game.enemyBullets) {
-      if (distance(bullet, p) < bullet.radius + HIT_RADIUS) {
-        if (elementBeats(game.activeElement, bullet.element)) {
-          game.score += 40;
-          p.invuln = 0.32;
-          burst(p.x, p.y, ELEMENT_COLORS[game.activeElement] || "#eef8ff", 10);
-          setMessage(`${ELEMENT_LABELS[game.activeElement]} guard`);
-        } else {
-          damagePlayer();
-        }
-        bullet.y = HEIGHT + 100;
-        break;
-      }
-    }
-    for (const enemy of game.enemies) {
-      if (distance(enemy, p) < enemy.radius + HIT_RADIUS) {
-        enemy.hp = 0;
-        damagePlayer();
-        break;
-      }
-    }
-  }
-}
-
-function elementBeats(attacker, defender) {
-  return attacker && defender && ELEMENT_BEATS[attacker] === defender;
-}
-
-function destroyEnemy(enemy) {
-  game.score += enemy.score;
-  game.kills += 1;
-  if (enemy.letterShield) rewardLetterShield(enemy);
-  burst(enemy.x, enemy.y, enemy.letterShield ? "#d6ff8f" : "#ffd36e", enemy.letterShield ? 20 : 12);
-  enemy.y = HEIGHT + 100;
-}
-
-=======
     }
     if (consumed) game.playerBullets.splice(i, 1);
   }
@@ -2489,7 +1673,6 @@ function destroyEnemy(enemy) {
   enemy.y = HEIGHT + 100;
 }
 
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function rewardLetterShield(enemy) {
   const count = 2 + Math.floor(Math.random() * 2);
   const gained = [];
@@ -2511,7 +1694,6 @@ function damagePlayer() {
     return;
   }
   p.hp -= 1;
-<<<<<<< HEAD
   p.invuln = 1.4;
   game.hits += 1;
   game.flash = 0.2;
@@ -2532,338 +1714,14 @@ function clearBossPhase() {
 
 function finish(mode) {
   game.mode = mode;
-  sendVersusFinish(mode);
-  updateHud();
-  submitRanking();
-  overlay.hidden = false;
-  overlay.querySelector("h1").textContent = mode === "game_clear" ? "Run Clear" : "Game Over";
-  overlay.querySelector("p").textContent = `Flow ${game.stagesCleared} / Score ${game.score} / Kills ${game.kills} / Hits ${game.hits}`;
-  startButton.textContent = "Back to Title";
-  restoreOverlayHint();
-}
-
-function togglePause() {
-  if (game.mode === "phase" || game.mode === "final") {
-    game.mode = "pause";
-    overlay.hidden = false;
-    overlay.querySelector("h1").textContent = "Paused";
-    overlay.querySelector("p").textContent = "Press Esc to resume, or Enter to restart.";
-    startButton.textContent = "Restart";
-  } else if (game.mode === "pause") {
-    game.mode = game.boss ? "final" : "phase";
-    overlay.hidden = true;
-    lastFrame = performance.now();
-  }
-  updateHud();
-}
-
-function updateParticles(dt) {
-  for (const p of game.particles) {
-    p.life -= dt;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-  }
-  game.particles = game.particles.filter((p) => p.life > 0);
-}
-
-function burst(x, y, color, count) {
-  for (let i = 0; i < count; i += 1) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 45 + Math.random() * 145;
-    game.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.25 + Math.random() * 0.35, color });
-  }
-}
-
-function draw() {
-  drawBackground();
-  drawPlayerBullets();
-  drawEnemies();
-  drawBoss();
-  drawEnemyBullets();
-  drawLetters();
-  drawPlayer();
-  drawParticles();
-  drawBossHp();
-  drawMessage();
-  drawRivalScreen();
-  if (game.flash > 0) {
-    ctx.fillStyle = `rgba(255, 80, 120, ${game.flash * 1.6})`;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  }
-}
-
-function drawBackground() {
-  ctx.fillStyle = "#071120";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  ctx.save();
-  ctx.translate(0, game.scroll % 80);
-  for (let y = -80; y < HEIGHT + 80; y += 80) {
-    ctx.strokeStyle = "rgba(121, 231, 255, 0.09)";
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(WIDTH, y);
-    ctx.stroke();
-    for (let x = 32; x < WIDTH; x += 72) {
-      const twinkle = 0.35 + Math.sin((game.scroll + x + y) * 0.04) * 0.25;
-      ctx.fillStyle = `rgba(255, 244, 190, ${twinkle})`;
-      ctx.fillRect(x, y + (x % 47), 2, 2);
-    }
-  }
-  ctx.restore();
-  const grad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-  grad.addColorStop(0, "rgba(14, 44, 82, 0.55)");
-  grad.addColorStop(1, "rgba(3, 9, 19, 0.25)");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-}
-
-function drawPlayer() {
-  const p = game.player;
-  ctx.save();
-  ctx.globalAlpha = p.invuln > 0 ? 0.55 + Math.sin(game.time * 30) * 0.25 : 1;
-  ctx.fillStyle = ELEMENT_COLORS[game.activeElement] || "#79e7ff";
-  ctx.shadowColor = ctx.fillStyle;
-  ctx.shadowBlur = 18;
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y - 19);
-  ctx.lineTo(p.x - 15, p.y + 16);
-  ctx.lineTo(p.x, p.y + 8);
-  ctx.lineTo(p.x + 15, p.y + 16);
-  ctx.closePath();
-  ctx.fill();
-  if (keys.has("shift")) {
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "#ffd36e";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, HIT_RADIUS + 3, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawVersusPeer() {
-  const peer = versus.peerState;
-  if (!versus.enabled || !peer || !Number.isFinite(peer.x) || !Number.isFinite(peer.y)) return;
-  if (performance.now() - peer.receivedAt > 2500) return;
-  ctx.save();
-  ctx.globalAlpha = 0.72;
-  ctx.strokeStyle = "#ff9f6e";
-  ctx.fillStyle = "rgba(255, 159, 110, 0.14)";
-  ctx.shadowColor = "#ff9f6e";
-  ctx.shadowBlur = 14;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(peer.x, peer.y - 22);
-  ctx.lineTo(peer.x - 17, peer.y + 17);
-  ctx.lineTo(peer.x, peer.y + 9);
-  ctx.lineTo(peer.x + 17, peer.y + 17);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.font = "700 12px ui-sans-serif, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#ffd9c7";
-  ctx.fillText(peer.name || "Rival", peer.x, peer.y + 34);
-  ctx.restore();
-}
-
-function drawRivalScreen() {
-  if (!rivalCtx || !rivalCanvas) return;
-  const w = rivalCanvas.width;
-  const h = rivalCanvas.height;
-  rivalCtx.fillStyle = "#071120";
-  rivalCtx.fillRect(0, 0, w, h);
-  rivalCtx.save();
-  const scroll = game.scroll % 80;
-  rivalCtx.translate(0, scroll);
-  for (let y = -80; y < h + 80; y += 80) {
-    rivalCtx.strokeStyle = "rgba(255, 159, 110, 0.08)";
-    rivalCtx.beginPath();
-    rivalCtx.moveTo(0, y);
-    rivalCtx.lineTo(w, y);
-    rivalCtx.stroke();
-    for (let x = 30; x < w; x += 76) {
-      rivalCtx.fillStyle = "rgba(255, 211, 110, 0.24)";
-      rivalCtx.fillRect(x, y + (x % 41), 2, 2);
-    }
-  }
-  rivalCtx.restore();
-
-  const peer = versus.peerState;
-  const fresh = peer && performance.now() - peer.receivedAt <= 4000;
-  if (!fresh || !Number.isFinite(peer.x) || !Number.isFinite(peer.y)) {
-    rivalCtx.fillStyle = "rgba(238, 248, 255, 0.76)";
-    rivalCtx.font = "800 24px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.textAlign = "center";
-    rivalCtx.fillText(versus.enabled ? "WAITING" : "RIVAL", w / 2, h / 2 - 8);
-    rivalCtx.font = "700 14px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.fillStyle = "rgba(168, 190, 209, 0.9)";
-    rivalCtx.fillText("no opponent signal", w / 2, h / 2 + 22);
-    return;
-  }
-
-  drawRivalStageEntities(peer);
-
-  const x = clamp(peer.x, PLAYER_RADIUS, w - PLAYER_RADIUS);
-  const y = clamp(peer.y, 78, h - PLAYER_RADIUS);
-  rivalCtx.save();
-  rivalCtx.fillStyle = "rgba(255, 159, 110, 0.18)";
-  rivalCtx.strokeStyle = "#ff9f6e";
-  rivalCtx.shadowColor = "#ff9f6e";
-  rivalCtx.shadowBlur = 18;
-  rivalCtx.lineWidth = 4;
-  rivalCtx.beginPath();
-  rivalCtx.moveTo(x, y - 24);
-  rivalCtx.lineTo(x - 18, y + 18);
-  rivalCtx.lineTo(x, y + 10);
-  rivalCtx.lineTo(x + 18, y + 18);
-  rivalCtx.closePath();
-  rivalCtx.fill();
-  rivalCtx.stroke();
-  rivalCtx.shadowBlur = 0;
-  rivalCtx.fillStyle = "#ffd9c7";
-  rivalCtx.font = "800 14px ui-sans-serif, system-ui, sans-serif";
-  rivalCtx.textAlign = "center";
-  rivalCtx.fillText(peer.name || "Rival", x, y + 38);
-  rivalCtx.restore();
-
-  rivalCtx.fillStyle = "rgba(7, 17, 32, 0.7)";
-  rivalCtx.fillRect(18, 18, w - 36, 48);
-  rivalCtx.fillStyle = "#ff9f6e";
-  rivalCtx.font = "800 16px ui-sans-serif, system-ui, sans-serif";
-  rivalCtx.textAlign = "left";
-  rivalCtx.fillText(`HP ${peer.hp ?? "-"} / ${peer.maxHp ?? "-"}`, 30, 38);
-  rivalCtx.fillStyle = "#ffd36e";
-  rivalCtx.fillText(`Score ${peer.score || 0}`, 30, 58);
-}
-
-function drawRivalStageEntities(peer) {
-  const view = peer.stageView || {};
-  if (peer.mode === "upgrade") {
-    rivalCtx.save();
-    rivalCtx.fillStyle = "rgba(255, 211, 110, 0.12)";
-    rivalCtx.fillRect(36, 310, rivalCanvas.width - 72, 96);
-    rivalCtx.fillStyle = "#ffd36e";
-    rivalCtx.font = "800 24px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.textAlign = "center";
-    rivalCtx.fillText("BUILDING WORDS", rivalCanvas.width / 2, 354);
-    rivalCtx.font = "700 14px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.fillStyle = "rgba(238, 248, 255, 0.86)";
-    rivalCtx.fillText(`letters ${peer.inventory || 0} / words ${peer.words || 0}`, rivalCanvas.width / 2, 382);
-    rivalCtx.restore();
-    return;
-  }
-
-  if (view.boss) drawRivalBoss(view.boss);
-  for (const enemy of view.enemies || []) drawRivalEnemy(enemy);
-  for (const bullet of view.playerBullets || []) drawRivalPlayerBullet(bullet);
-  for (const bullet of view.enemyBullets || []) drawRivalEnemyBullet(bullet);
-  for (const letter of view.letters || []) drawRivalLetter(letter);
-}
-
-function drawRivalEnemy(enemy) {
-  rivalCtx.fillStyle = ELEMENT_COLORS[enemy.element] || (enemy.type === "A" ? "#ff8db3" : enemy.type === "B" ? "#ffd36e" : enemy.type === "D" ? "#d6ff8f" : "#c99cff");
-  rivalCtx.shadowColor = rivalCtx.fillStyle;
-  rivalCtx.shadowBlur = 10;
-  rivalCtx.beginPath();
-  rivalCtx.arc(enemy.x, enemy.y, enemy.radius || 18, 0, Math.PI * 2);
-  rivalCtx.fill();
-  if (enemy.letterShield) {
-    rivalCtx.shadowBlur = 0;
-    rivalCtx.strokeStyle = "#eef8ff";
-    rivalCtx.lineWidth = 3;
-    rivalCtx.stroke();
-  }
-  rivalCtx.shadowBlur = 0;
-}
-
-function drawRivalBoss(boss) {
-  const pct = boss.maxHp ? clamp(boss.hp / boss.maxHp, 0, 1) : 0;
-  rivalCtx.fillStyle = ELEMENT_COLORS[boss.element] || "#ff6b9a";
-  rivalCtx.shadowColor = rivalCtx.fillStyle;
-  rivalCtx.shadowBlur = 18;
-  rivalCtx.beginPath();
-  rivalCtx.ellipse(boss.x, boss.y, (boss.radius || 40) * 1.25, boss.radius || 40, 0, 0, Math.PI * 2);
-  rivalCtx.fill();
-  rivalCtx.shadowBlur = 0;
-  rivalCtx.fillStyle = "rgba(255, 255, 255, 0.16)";
-  rivalCtx.fillRect(32, 78, rivalCanvas.width - 64, 8);
-  rivalCtx.fillStyle = ELEMENT_COLORS[boss.element] || "#ff6b9a";
-  rivalCtx.fillRect(32, 78, (rivalCanvas.width - 64) * pct, 8);
-}
-
-function drawRivalEnemyBullet(bullet) {
-  rivalCtx.fillStyle = ELEMENT_COLORS[bullet.element] || bullet.color || "#ff6b9a";
-  rivalCtx.shadowColor = rivalCtx.fillStyle;
-  rivalCtx.shadowBlur = 7;
-  rivalCtx.beginPath();
-  rivalCtx.arc(bullet.x, bullet.y, bullet.radius || 6, 0, Math.PI * 2);
-  rivalCtx.fill();
-  rivalCtx.shadowBlur = 0;
-}
-
-function drawRivalPlayerBullet(bullet) {
-  rivalCtx.fillStyle = bullet.type === "letter" ? "#ffd36e" : ELEMENT_COLORS[bullet.element] || "#baf6ff";
-  rivalCtx.shadowColor = rivalCtx.fillStyle;
-  rivalCtx.shadowBlur = 8;
-  rivalCtx.beginPath();
-  rivalCtx.roundRect(bullet.x - 3, bullet.y - 10, 6, 18, 3);
-  rivalCtx.fill();
-  rivalCtx.shadowBlur = 0;
-  if (bullet.type === "letter" && bullet.char) {
-    rivalCtx.fillStyle = "#071120";
-    rivalCtx.font = "800 14px ui-sans-serif, system-ui, sans-serif";
-    rivalCtx.textAlign = "center";
-    rivalCtx.fillText(bullet.char, bullet.x, bullet.y + 5);
-  }
-}
-
-function drawRivalLetter(letter) {
-  rivalCtx.fillStyle = letter.powered ? "#ffe38d" : "rgba(7, 17, 32, 0.86)";
-  rivalCtx.strokeStyle = "#d6ff8f";
-  rivalCtx.lineWidth = 2;
-  rivalCtx.beginPath();
-  rivalCtx.arc(letter.x, letter.y, letter.radius || 14, 0, Math.PI * 2);
-  rivalCtx.fill();
-  rivalCtx.stroke();
-  rivalCtx.fillStyle = letter.powered ? "#071120" : "#eef8ff";
-  rivalCtx.font = "800 18px ui-sans-serif, system-ui, sans-serif";
-  rivalCtx.textAlign = "center";
-  rivalCtx.textBaseline = "middle";
-  rivalCtx.fillText(letter.char || "", letter.x, letter.y + 1);
-  rivalCtx.textBaseline = "alphabetic";
-}
-
-=======
-  p.invuln = 1.4;
-  game.hits += 1;
-  game.flash = 0.2;
-  burst(p.x, p.y, "#ff6b9a", 18);
-  if (p.hp <= 0) finish("game_over");
-}
-
-function clearBossPhase() {
-  game.score += 1200 + game.phase * 160 + game.player.hp * 220;
   game.stagesCleared = Math.max(game.stagesCleared, game.phase);
-  game.boss = null;
-  game.enemies.length = 0;
-  game.enemyBullets.length = 0;
-  game.playerBullets.length = 0;
-  setMessage(`Boss ${Math.floor(game.phase / 3)} cleared`);
-  enterUpgrade();
-}
-
-function finish(mode) {
-  game.mode = mode;
   updateHud();
-  submitRanking();
   overlay.hidden = false;
   overlay.querySelector("h1").textContent = mode === "game_clear" ? "Run Clear" : "Game Over";
   overlay.querySelector("p").textContent = `Flow ${game.stagesCleared} / Score ${game.score} / Kills ${game.kills} / Hits ${game.hits}`;
   startButton.textContent = "Back to Title";
   restoreOverlayHint();
+  prepareRankingSubmission();
 }
 
 function togglePause() {
@@ -2965,7 +1823,6 @@ function drawPlayer() {
   ctx.restore();
 }
 
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 function drawPlayerBullets() {
   ctx.save();
   ctx.font = "700 20px ui-sans-serif, system-ui, sans-serif";
@@ -2986,14 +1843,8 @@ function drawPlayerBullets() {
       ctx.fillStyle = "#eef8ff";
       ctx.fillText(b.char, b.x, b.y + 1);
     } else {
-<<<<<<< HEAD
-      const color = ELEMENT_COLORS[b.element] || "#baf6ff";
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-=======
       ctx.fillStyle = b.color || "#baf6ff";
       ctx.shadowColor = b.glow || "#79e7ff";
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
       ctx.shadowBlur = 10;
       ctx.beginPath();
       drawPlayerBulletShape(b);
@@ -3002,15 +1853,6 @@ function drawPlayerBullets() {
   ctx.restore();
 }
 
-<<<<<<< HEAD
-function drawEnemies() {
-  for (const e of game.enemies) {
-    ctx.fillStyle = ELEMENT_COLORS[e.element] || (e.type === "A" ? "#ff8db3" : e.type === "B" ? "#ffd36e" : e.type === "D" ? "#d6ff8f" : "#c99cff");
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-=======
 function drawPlayerBulletShape(b) {
   if (b.shape === "flame") {
     ctx.moveTo(b.x, b.y - 15);
@@ -3041,7 +1883,6 @@ function drawPlayerBulletShape(b) {
     ctx.stroke();
   } else {
     ctx.roundRect(b.x - 3, b.y - 12, 6, 18, 3);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
     ctx.fill();
   }
 }
@@ -3072,35 +1913,6 @@ function drawEnemies() {
 function drawBoss() {
   const b = game.boss;
   if (!b) return;
-<<<<<<< HEAD
-  ctx.fillStyle = ELEMENT_COLORS[b.element] || "#ff6b9a";
-  ctx.shadowColor = ctx.fillStyle;
-  ctx.shadowBlur = 24;
-  ctx.beginPath();
-  ctx.ellipse(b.x, b.y, b.radius * 1.25, b.radius, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = ELEMENT_COLORS[b.weakness] || "#ffd36e";
-  ctx.beginPath();
-  ctx.arc(b.x, b.y + 4, b.radius * 0.42, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-}
-
-function drawEnemyBullets() {
-  for (const b of game.enemyBullets) {
-    ctx.fillStyle = b.color;
-    ctx.shadowColor = b.color;
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.shadowBlur = 0;
-}
-
-function drawLetters() {
-=======
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   ctx.save();
   ctx.translate(b.x, b.y);
   ctx.fillStyle = b.design.color;
@@ -3244,31 +2056,12 @@ function drawBossHp() {
   ctx.save();
   ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
   ctx.fillRect(32, 32, w, 8);
-<<<<<<< HEAD
-  ctx.fillStyle = ELEMENT_COLORS[game.boss.element] || "#ff6b9a";
-  ctx.fillRect(32, 32, w * pct, 8);
-  ctx.font = "700 12px ui-sans-serif, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(238, 248, 255, 0.92)";
-  ctx.fillText(`${ELEMENT_LABELS[game.boss.element]} boss / weak: ${ELEMENT_LABELS[game.boss.weakness]}`, WIDTH / 2, 26);
-}
-
-function drawMessage() {
-  if (game.messageTimer <= 0 && game.mode !== "title") return;
-  if (!game.message) return;
-  ctx.save();
-  ctx.font = "700 18px ui-sans-serif, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(238, 248, 255, 0.92)";
-  ctx.fillText(game.message, WIDTH / 2, 64);
-=======
   ctx.fillStyle = boss.design.color;
   ctx.fillRect(32, 32, w * pct, 8);
   ctx.font = "800 12px ui-sans-serif, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillStyle = boss.design.accent;
   ctx.fillText(`${boss.design.name} / 弱点 ${bossWeakLabel(boss)}`, 32, 25);
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   ctx.restore();
 }
 
@@ -3308,20 +2101,11 @@ function updateHud() {
   const activeEffects = Object.entries(game.effects)
     .filter(([, time]) => time > 0)
     .map(([name, time]) => `${name} ${Math.ceil(time)}s`);
-<<<<<<< HEAD
-  const elementText = `Element: ${ELEMENT_LABELS[game.activeElement]} (${game.unlockedElements.map((element) => `${ELEMENTS.indexOf(element) + 1}:${ELEMENT_LABELS[element]}`).join(" ")})`;
-  const bossText = bossElementInfoText();
-  const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
-  const versusText = formatVersusHud();
-  effectsEl.textContent = [activeEffects.join(" / "), elementText, bossText, upgrades, versusText].filter(Boolean).join(" | ") || "no active effects";
-  updateRivalHud();
-=======
   const attribute = currentShotAttribute();
   const attributeText = `属性: ${attribute.label} (${attribute.role})`;
   const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
   effectsEl.textContent = [attributeText, activeEffects.join(" / "), upgrades].filter(Boolean).join(" | ");
   updateBuffTray();
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
 }
 
 function updateBuffTray() {
@@ -3433,36 +2217,157 @@ function debugStartBoss() {
   updateHud();
 }
 
-async function submitRanking() {
-  if (game.stagesCleared <= 0) return;
-  const entry = {
+async function prepareRankingSubmission() {
+  const entry = buildRankingEntry();
+  if (!entry) return;
+  if (entry.usedLetters.length) {
+    renderRankingCommentForm(entry);
+    return;
+  }
+  await submitRankingEntry(entry);
+}
+
+function buildRankingEntry() {
+  if (game.score <= 0) return null;
+  const reachedStages = Math.max(1, game.stagesCleared, game.phase);
+  return {
     name: readPlayerName(),
-    stages: game.stagesCleared,
+    stages: reachedStages,
     score: game.score,
+    usedLetters: game.usedUpgradeLetters.slice(0, 32),
     date: new Date().toISOString(),
   };
+}
+
+function renderRankingCommentForm(entry) {
+  const hint = overlay.querySelector(".hint");
+  const allowedLetters = uniqueLetters(entry.usedLetters);
+  let comment = "";
+  hint.innerHTML = "";
+  const form = document.createElement("form");
+  form.className = "ranking-comment-form";
+  const title = document.createElement("strong");
+  title.textContent = "ランキングコメント";
+  const output = document.createElement("span");
+  output.className = "ranking-comment-output";
+  output.textContent = "文字を選んでください";
+  const bank = document.createElement("span");
+  bank.className = "ranking-comment-bank";
+  allowedLetters.forEach((char) => {
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "ranking-comment-tile";
+    tile.textContent = char;
+    tile.addEventListener("click", () => {
+      if (comment.length >= RANKING_COMMENT_LIMIT) return;
+      comment = sanitizeRankingComment(`${comment}${char}`, allowedLetters);
+      output.textContent = comment || "文字を選んでください";
+    });
+    bank.append(tile);
+  });
+  const note = document.createElement("span");
+  note.className = "ranking-comment-note";
+  note.textContent = `使える文字: ${allowedLetters.join(" ")}`;
+  const actions = document.createElement("span");
+  actions.className = "ranking-comment-actions";
+  const undo = document.createElement("button");
+  undo.type = "button";
+  undo.textContent = "1文字戻す";
+  undo.addEventListener("click", () => {
+    comment = comment.slice(0, -1);
+    output.textContent = comment || "文字を選んでください";
+  });
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.textContent = "消す";
+  clear.addEventListener("click", () => {
+    comment = "";
+    output.textContent = "文字を選んでください";
+  });
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.textContent = "送信";
+  actions.append(undo, clear, submit);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    entry.comment = sanitizeRankingComment(comment, allowedLetters);
+    const rankings = await submitRankingEntry(entry);
+    renderRankingResult(hint, rankings, entry);
+  });
+  form.append(title, output, bank, note, actions);
+  hint.append(form);
+  keys.clear();
+}
+
+async function submitRankingEntry(entry) {
   try {
-    await fetch(RANKING_ENDPOINT, {
+    const response = await fetch(RANKING_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(entry),
     });
-    await loadRankings();
+    if (!response.ok) throw new Error("Ranking API unavailable");
+    const rankings = await response.json();
+    const ranked = rankEntries(rankings);
+    renderRankings(ranked);
+    return ranked;
   } catch {
     saveLocalRanking(entry);
-    renderRankings(readLocalRankings());
+    const ranked = readLocalRankings();
+    renderRankings(ranked);
+    return ranked;
   }
 }
 
+function renderRankingResult(container, rankings, entry) {
+  container.innerHTML = "";
+  const wrapper = document.createElement("div");
+  wrapper.className = "ranking-result";
+  const title = document.createElement("strong");
+  title.textContent = entry.comment ? `送信: 「${entry.comment}」` : "ランキング送信しました";
+  const list = document.createElement("ol");
+  rankEntries(rankings).forEach((rankedEntry, index) => {
+    const item = document.createElement("li");
+    const comment = rankedEntry.comment ? `「${rankedEntry.comment}」` : "";
+    item.textContent = `${index + 1}. ${rankedEntry.name} - ${rankedEntry.stages} stages / ${rankedEntry.score} ${comment}`;
+    list.append(item);
+  });
+  wrapper.append(title, list);
+  container.append(wrapper);
+}
+
 async function loadRankings() {
+  renderRankings(await fetchRankings());
+}
+
+async function fetchRankings() {
   try {
     const response = await fetch(RANKING_ENDPOINT);
     if (!response.ok) throw new Error("Ranking API unavailable");
     const rankings = await response.json();
-    renderRankings(rankEntries(rankings));
+    return rankEntries(rankings);
   } catch {
-    renderRankings(readLocalRankings());
+    return readLocalRankings();
   }
+}
+
+function isRankingCandidate(entry, rankings) {
+  const ranked = rankEntries([...rankings, entry]);
+  return ranked.some((rankedEntry) => rankedEntry.name === entry.name && rankedEntry.date === entry.date)
+    && ranked.findIndex((rankedEntry) => rankedEntry.name === entry.name && rankedEntry.date === entry.date) < RANKING_LIMIT;
+}
+
+function sanitizeRankingComment(comment, allowedLetters) {
+  const allowed = new Set(allowedLetters);
+  return [...normalizeKana(comment || "")]
+    .filter((char) => allowed.has(char))
+    .join("")
+    .slice(0, RANKING_COMMENT_LIMIT);
+}
+
+function uniqueLetters(letters) {
+  return [...new Set((letters || []).map((item) => normalizeKana(String(item))[0]).filter(Boolean))];
 }
 
 function readPlayerName() {
@@ -3476,7 +2381,7 @@ function readPlayerName() {
 
 function saveLocalRanking(entry) {
   const rankings = rankEntries([...readLocalRankings(), entry]);
-  localStorage.setItem("vbg-rankings", JSON.stringify(rankings.slice(0, 10)));
+  localStorage.setItem("vbg-rankings", JSON.stringify(rankings.slice(0, RANKING_LIMIT)));
 }
 
 function readLocalRankings() {
@@ -3488,18 +2393,10 @@ function readLocalRankings() {
 }
 
 function rankEntries(entries) {
-  const bestByName = new Map();
-  for (const entry of entries) {
-    if (!entry || !Number.isFinite(entry.stages) || !Number.isFinite(entry.score)) continue;
-    const current = bestByName.get(entry.name);
-    if (!current || entry.stages > current.stages || (entry.stages === current.stages && entry.score > current.score)) {
-      bestByName.set(entry.name, entry);
-    }
-  }
-  return [...bestByName.values()]
+  return (Array.isArray(entries) ? entries : [])
     .filter((entry) => entry && Number.isFinite(entry.stages) && Number.isFinite(entry.score))
-    .sort((a, b) => b.stages - a.stages || b.score - a.score)
-    .slice(0, 10);
+    .sort((a, b) => b.stages - a.stages || b.score - a.score || String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, RANKING_LIMIT);
 }
 
 function renderRankings(rankings) {
@@ -3512,7 +2409,8 @@ function renderRankings(rankings) {
   }
   rankings.forEach((entry, index) => {
     const item = document.createElement("li");
-    item.textContent = `${index + 1}. ${entry.name} - ${entry.stages} stages / ${entry.score}`;
+    const comment = entry.comment ? `「${entry.comment}」` : "";
+    item.textContent = `${index + 1}. ${entry.name} - ${entry.stages} stages / ${entry.score} ${comment}`;
     rankingListEl.append(item);
   });
 }
@@ -3558,6 +2456,13 @@ function shouldPreventKey(key) {
   return Boolean(keyAction(key)) || ["enter", "escape", " "].includes(key);
 }
 
+function isTextEntryTarget(target) {
+  return target instanceof HTMLInputElement
+    || target instanceof HTMLTextAreaElement
+    || target instanceof HTMLSelectElement
+    || Boolean(target?.isContentEditable);
+}
+
 function handleStartButton() {
   if (game.mode === "upgrade") {
     forgeSelectedWord();
@@ -3582,17 +2487,7 @@ debugBossSelectEl?.addEventListener("change", () => {
 debugStartBossEl?.addEventListener("click", debugStartBoss);
 
 window.addEventListener("keydown", (event) => {
-<<<<<<< HEAD
-  const key = event.key.toLowerCase();
-  if (["a", "d", "w", "s", "j", "k", "q", "e", "tab", "shift", "enter", "escape", " ", "1", "2", "3", "4", "5", "6"].includes(key)) event.preventDefault();
-  if (key === "enter" && !["phase", "final"].includes(game.mode)) handleStartButton();
-  if (key === "escape") togglePause();
-  if (key === " ") debugInvincible = true;
-  if (key === "k" && !event.repeat) fireStoredLetter();
-  if (!event.repeat && /^[1-6]$/.test(key)) switchElementByNumber(key);
-  if (!event.repeat && key === "q") cycleElement(-1);
-  if (!event.repeat && (key === "e" || key === "tab")) cycleElement(1);
-=======
+  if (isTextEntryTarget(event.target)) return;
   const key = normalizeInputKey(event);
   handleDebugCommandKey(key);
   if (shouldPreventKey(key)) event.preventDefault();
@@ -3601,11 +2496,11 @@ window.addEventListener("keydown", (event) => {
   if (key === " " && !event.repeat) cycleShotAttribute();
   if (keyAction(key) === "letterSelect" && !event.repeat) cycleSelectedLetter();
   if (keyAction(key) === "letterShot" && !event.repeat) fireStoredLetter();
->>>>>>> b3a82b7d2ae761e3cc6b612b9f0369d1e00d791a
   keys.add(key);
 });
 
 window.addEventListener("keyup", (event) => {
+  if (isTextEntryTarget(event.target)) return;
   const key = normalizeInputKey(event);
   keys.delete(key);
 });
