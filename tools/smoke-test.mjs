@@ -70,7 +70,7 @@ try {
   assert(html.includes("<canvas"), "index.html should include the game canvas");
   assert(html.includes("Vertical Bullet Garden"), "index.html should include the bullet shooter title");
   assert(html.includes("rankingList"), "index.html should include the ranking list");
-  assert(html.includes("startButton"), "index.html should include the loop mode button");
+  assert(html.includes(">Start</button>"), "index.html should label the start button clearly");
   assert(html.includes("keyPreset"), "index.html should include the key preset selector");
   assert(html.includes("touhou"), "index.html should include the Touhou-style key preset");
   assert(html.includes("controlHint"), "index.html should include the current key hint");
