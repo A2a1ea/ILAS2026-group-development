@@ -1,7 +1,9 @@
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 const port = 5187;
+const rankingFile = ".logs/rankings.json";
+const originalRankingFile = existsSync(rankingFile) ? readFileSync(rankingFile, "utf8") : null;
 const server = spawn(process.execPath, ["tools/dev-server.mjs", "--port", String(port)], {
   stdio: ["ignore", "pipe", "pipe"],
 });
@@ -15,6 +17,31 @@ try {
   const wordUpgradeSheet = readFileSync("data/word-upgrades.csv", "utf8");
   const asset = await fetch(`http://127.0.0.1:${port}/assets/courtyard-bg.png`);
   const rankings = await fetch(`http://127.0.0.1:${port}/api/rankings/stages`);
+  const smokeRankName = `Smoke${String(Date.now()).slice(-8)}`;
+  const rankingPost = await fetch(`http://127.0.0.1:${port}/api/rankings/stages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: smokeRankName,
+      stages: 99,
+      score: 12345,
+      usedLetters: ["ほ", "の", "お"],
+      comment: "ほげのおabc",
+    }),
+  });
+  const rankingPostResult = await rankingPost.json();
+  const duplicateNameRankingPost = await fetch(`http://127.0.0.1:${port}/api/rankings/stages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: smokeRankName,
+      stages: 98,
+      score: 12344,
+      usedLetters: ["か", "さ"],
+      comment: "かさかさ",
+    }),
+  });
+  const duplicateNameRankingPostResult = await duplicateNameRankingPost.json();
   const localWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("\u306d\u3053")}`);
   const localWordResult = await localWord.json();
   const dictionaryWord = await fetch(`http://127.0.0.1:${port}/api/words/validate?word=${encodeURIComponent("\u306f\u3057\u308b")}`);
@@ -118,10 +145,19 @@ try {
   assert(js.includes("attribute.role"), "script.js should show the current shot attribute role in the HUD");
   assert(js.includes("function formatRecognizedWord"), "script.js should show dictionary recognition details");
   assert(js.includes("function forgeSelectedWord"), "script.js should include word-board forging");
-  assert(js.includes("Make a valid 3-letter word before choosing an upgrade."), "forge should require a valid word before showing upgrade choices");
+  assert(js.includes("Confirm will continue without an upgrade."), "forge should let players continue when no upgrade word is available");
+  assert(!js.includes("Make a valid 3-letter word before choosing an upgrade."), "forge should not trap players without a valid word");
   assert(!js.includes("createFallbackUpgrade"), "forge should not create free fallback upgrades without a word");
   assert(js.includes("function buildUpgradeChoices"), "script.js should create roguelike upgrade choices");
   assert(js.includes("function chooseUpgradeReward"), "script.js should let players choose one upgrade reward");
+  assert(js.includes("usedUpgradeLetters"), "script.js should track letters spent on upgrades for ranking comments");
+  assert(js.includes("if (entry.usedLetters.length)"), "game-over ranking form should appear whenever upgrade letters were used");
+  assert(js.includes("renderRankingCommentForm"), "script.js should show an in-game ranking comment form");
+  assert(js.includes("renderRankingResult"), "script.js should show the top-ten ranking after comment submission");
+  assert(js.includes("submitRankingEntry"), "script.js should submit ranking entries through the Web API");
+  assert(js.includes("sanitizeRankingComment"), "script.js should restrict ranking comments to used upgrade letters");
+  assert(js.includes("function isTextEntryTarget"), "script.js should ignore game controls while typing ranking comments");
+  assert(js.includes("if (isTextEntryTarget(event.target)) return;"), "global key handlers should not intercept text inputs");
   assert(js.includes("\u30ea\u30b9\u30af\u5f37\u5316"), "script.js should include a risk-reward upgrade choice");
   assert(js.includes("\u30dc\u30b9\u5bfe\u7b56"), "script.js should include boss-counter upgrade choices");
   assert(js.includes("\u5927\u5f53\u305f\u308a\u899a\u9192"), "script.js should include readable high-roll upgrade choices");
@@ -163,6 +199,8 @@ try {
 
   assert(devServerJs.includes("logUnknownWord"), "dev server should log unknown words");
   assert(devServerJs.includes("word-upgrades.csv"), "dev server should load code-free word upgrades from CSV");
+  assert(devServerJs.includes("sanitizeRankingComment"), "dev server should sanitize ranking comments");
+  assert(devServerJs.includes("sanitizeUsedLetters"), "dev server should store allowed ranking comment letters");
   assert(devServerJs.includes("function readWordUpgradeSheet"), "dev server should parse the editable word upgrade sheet");
   assert(devServerJs.includes("function parseCsv"), "dev server should parse spreadsheet CSV exports");
   assert(devServerJs.includes("fetchKuromojiWordEntry"), "dev server should validate words through the morphological dictionary");
@@ -183,6 +221,8 @@ try {
   assert(css.includes(".buff-tray"), "styles.css should include buff icon tray styles");
   assert(css.includes(".buff-icon"), "styles.css should include buff icon styles");
   assert(css.includes(".status-panel"), "styles.css should include letter and ranking panel styles");
+  assert(css.includes(".ranking-comment-form"), "styles.css should style the game-over ranking comment form");
+  assert(css.includes(".ranking-result"), "styles.css should style the post-submit top-ten ranking");
   assert(css.includes(".debug-panel"), "styles.css should style the hidden debug panel");
   assert(css.includes(".word-board"), "styles.css should include the upgrade word board");
   assert(css.includes(".upgrade-choices"), "styles.css should include upgrade choice card layout");
@@ -197,6 +237,10 @@ try {
 
   assert(asset.ok, "background image should be served");
   assert(rankings.ok, "ranking API should be served");
+  assert(rankingPost.ok, "ranking API should accept posted scores");
+  assert(rankingPostResult.some((entry) => entry.comment === "\u307b\u306e\u304a"), "ranking API should keep comments to used upgrade letters only");
+  assert(duplicateNameRankingPost.ok, "ranking API should accept repeated player names");
+  assert(duplicateNameRankingPostResult.filter((entry) => entry.name === smokeRankName).length === 2, "ranking API should keep separate runs for the same player name");
   assert(localWord.ok && localWordResult.valid, "word validation API should validate local Japanese words");
   assert(dictionaryWord.ok && dictionaryWordResult.valid && dictionaryWordResult.source === "kuromoji", "word validation API should accept one-token dictionary words");
   assert(compoundDictionaryWord.ok && compoundDictionaryWordResult.valid && compoundDictionaryWordResult.source === "kuromoji", "word validation API should accept 3+ character compound dictionary words");
@@ -213,6 +257,11 @@ try {
   console.log("Smoke test passed.");
 } finally {
   server.kill();
+  if (originalRankingFile == null) {
+    rmSync(rankingFile, { force: true });
+  } else {
+    writeFileSync(rankingFile, originalRankingFile);
+  }
 }
 
 async function waitForServer(targetPort) {

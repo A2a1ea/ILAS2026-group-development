@@ -10,6 +10,8 @@ const rankingFile = join(root, ".logs", "rankings.json");
 const unknownWordsFile = join(root, ".logs", "unknown-words.json");
 const wordsFile = join(root, "data", "words-ja.json");
 const wordUpgradeSheetFile = join(root, "data", "word-upgrades.csv");
+const rankingLimit = 10;
+const rankingCommentLimit = 24;
 const kuromoji = require("kuromoji");
 const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")), "dict");
 const conversionForms = new Map([
@@ -121,7 +123,7 @@ function handleRankings(request, response) {
         response.end("Invalid ranking entry");
         return;
       }
-      const rankings = rankEntries([...readRankings(), entry]).slice(0, 10);
+      const rankings = rankEntries([...readRankings(), entry]).slice(0, rankingLimit);
       writeRankings(rankings);
       sendJson(response, rankings);
     } catch {
@@ -136,17 +138,37 @@ function sanitizeRanking(entry) {
   const stages = Math.floor(Number(entry?.stages));
   const score = Math.floor(Number(entry?.score));
   if (!Number.isFinite(stages) || stages < 1 || !Number.isFinite(score) || score < 0) return null;
+  const usedLetters = sanitizeUsedLetters(entry?.usedLetters);
   return {
     name,
     stages,
     score,
+    usedLetters,
+    comment: sanitizeRankingComment(entry?.comment, usedLetters),
     date: new Date().toISOString(),
   };
 }
 
+function sanitizeUsedLetters(letters) {
+  const source = Array.isArray(letters) ? letters.join("") : String(letters || "");
+  return [...normalizeKana(source)]
+    .filter((char, index, all) => /[ぁ-ん]/.test(char) && all.indexOf(char) === index)
+    .slice(0, 32);
+}
+
+function sanitizeRankingComment(comment, usedLetters) {
+  const allowed = new Set(usedLetters);
+  if (!allowed.size) return "";
+  return [...normalizeKana(comment || "")]
+    .filter((char) => allowed.has(char))
+    .join("")
+    .slice(0, rankingCommentLimit);
+}
+
 function readRankings() {
   try {
-    return rankEntries(JSON.parse(readFileSync(rankingFile, "utf8")));
+    const rankings = JSON.parse(readFileSync(rankingFile, "utf8").replace(/^\uFEFF/, ""));
+    return rankEntries(Array.isArray(rankings) ? rankings : [rankings]);
   } catch {
     return [];
   }
@@ -472,18 +494,10 @@ function describeUpgrade(type, power) {
 }
 
 function rankEntries(entries) {
-  const bestByName = new Map();
-  for (const entry of entries) {
-    if (!entry || !Number.isFinite(entry.stages) || !Number.isFinite(entry.score)) continue;
-    const current = bestByName.get(entry.name);
-    if (!current || entry.stages > current.stages || (entry.stages === current.stages && entry.score > current.score)) {
-      bestByName.set(entry.name, entry);
-    }
-  }
-  return [...bestByName.values()]
+  return (Array.isArray(entries) ? entries : [])
     .filter((entry) => entry && Number.isFinite(entry.stages) && Number.isFinite(entry.score))
-    .sort((a, b) => b.stages - a.stages || b.score - a.score)
-    .slice(0, 10);
+    .sort((a, b) => b.stages - a.stages || b.score - a.score || String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, rankingLimit);
 }
 
 function sendJson(response, data) {

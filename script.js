@@ -32,6 +32,8 @@ const ENEMY_TURN_TIME = 4.2;
 const ENEMY_TURN_Y = HEIGHT * 0.58;
 const ENEMY_TURN_EXIT_SPEED = 150;
 const RANKING_ENDPOINT = "/api/rankings/stages";
+const RANKING_LIMIT = 10;
+const RANKING_COMMENT_LIMIT = 24;
 const WORD_ENDPOINT = "/api/words/validate";
 const LETTER_POOL = "あああいいいううええおおかかききくくけこさしすすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん";
 const REWARD_LETTERS = ["ね", "こ", "そ", "ら", "は", "な", "み", "ず", "ほ", "し", "あ", "め", "か", "ぜ", "つ", "き", "ま", "も", "り"];
@@ -187,6 +189,7 @@ function createGame(mode = "title") {
       busy: false,
     },
     upgrades: [],
+    usedUpgradeLetters: [],
     buffIcons: [],
     startingSlow: 0,
     effects: {
@@ -885,7 +888,7 @@ function renderUpgradeBoard() {
   } else {
     const empty = document.createElement("span");
     empty.className = "board-note";
-    empty.textContent = "No letters collected. You need a valid 3-letter word for an upgrade.";
+    empty.textContent = "No letters collected. Confirm will continue without an upgrade.";
     rack.append(empty);
   }
   panel.append(rack);
@@ -963,8 +966,7 @@ async function forgeSelectedWord() {
   if (game.upgradeBoard.choosing) return;
   const validUpgrades = game.upgradeBoard.pendingUpgrades;
   if (!validUpgrades.length) {
-    game.upgradeBoard.message = "Make a valid 3-letter word before choosing an upgrade.";
-    renderUpgradeBoard();
+    advanceAfterUpgrade();
     return;
   }
   const seedUpgrade = validUpgrades[validUpgrades.length - 1];
@@ -984,7 +986,7 @@ function chooseUpgradeReward(index) {
   if (!game.upgradeBoard.choosing) return;
   const choice = game.upgradeBoard.choiceOptions[index];
   if (!choice) return;
-  consumePlacedLetters();
+  recordUpgradeLetters(consumePlacedLetters());
   applyDynamicUpgrade(choice.upgrade);
   if (choice.risk) applyUpgradeRisk(choice.risk);
   advanceAfterUpgrade();
@@ -1391,11 +1393,20 @@ function pushLineWord(words, cells, direction) {
 }
 
 function consumePlacedLetters() {
-  const selected = getPlacedCells().map((cell) => cell.sourceIndex).sort((a, b) => b - a);
+  const placed = getPlacedCells();
+  const usedLetters = placed.map((cell) => cell.char);
+  const selected = placed.map((cell) => cell.sourceIndex).sort((a, b) => b - a);
   for (const index of selected) game.inventory.splice(index, 1);
   normalizeSelectedLetterIndex();
   game.upgradeBoard.cells = Array(BOARD_SIZE).fill(null);
   game.upgradeBoard.activeIndex = null;
+  return usedLetters;
+}
+
+function recordUpgradeLetters(letters) {
+  for (const char of letters) {
+    if (char && !game.usedUpgradeLetters.includes(char)) game.usedUpgradeLetters.push(char);
+  }
 }
 
 async function analyzeWord(word) {
@@ -1702,14 +1713,15 @@ function clearBossPhase() {
 }
 
 function finish(mode) {
-  game.mode = mode;
+  game.mode = mode;
+  game.stagesCleared = Math.max(game.stagesCleared, game.phase);
   updateHud();
-  submitRanking();
   overlay.hidden = false;
   overlay.querySelector("h1").textContent = mode === "game_clear" ? "Run Clear" : "Game Over";
   overlay.querySelector("p").textContent = `Flow ${game.stagesCleared} / Score ${game.score} / Kills ${game.kills} / Hits ${game.hits}`;
   startButton.textContent = "Back to Title";
   restoreOverlayHint();
+  prepareRankingSubmission();
 }
 
 function togglePause() {
@@ -2205,36 +2217,133 @@ function debugStartBoss() {
   updateHud();
 }
 
-async function submitRanking() {
-  if (game.stagesCleared <= 0) return;
-  const entry = {
+async function prepareRankingSubmission() {
+  const entry = buildRankingEntry();
+  if (!entry) return;
+  if (entry.usedLetters.length) {
+    renderRankingCommentForm(entry);
+    return;
+  }
+  await submitRankingEntry(entry);
+}
+
+function buildRankingEntry() {
+  if (game.score <= 0) return null;
+  const reachedStages = Math.max(1, game.stagesCleared, game.phase);
+  return {
     name: readPlayerName(),
-    stages: game.stagesCleared,
+    stages: reachedStages,
     score: game.score,
+    usedLetters: game.usedUpgradeLetters.slice(0, 32),
     date: new Date().toISOString(),
   };
+}
+
+function renderRankingCommentForm(entry) {
+  const hint = overlay.querySelector(".hint");
+  const allowedLetters = uniqueLetters(entry.usedLetters);
+  hint.innerHTML = "";
+  const form = document.createElement("form");
+  form.className = "ranking-comment-form";
+  const label = document.createElement("label");
+  label.textContent = "ランキングコメント";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.maxLength = RANKING_COMMENT_LIMIT;
+  input.placeholder = allowedLetters.join("");
+  input.autocomplete = "off";
+  input.inputMode = "text";
+  input.addEventListener("focus", () => keys.clear());
+  const note = document.createElement("span");
+  note.className = "ranking-comment-note";
+  note.textContent = `使える文字: ${allowedLetters.join(" ")}`;
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.textContent = "送信";
+  input.addEventListener("input", () => {
+    input.value = sanitizeRankingComment(input.value, allowedLetters);
+  });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    entry.comment = sanitizeRankingComment(input.value, allowedLetters);
+    const rankings = await submitRankingEntry(entry);
+    renderRankingResult(hint, rankings, entry);
+  });
+  label.append(input);
+  form.append(label, note, submit);
+  hint.append(form);
+  input.focus();
+}
+
+async function submitRankingEntry(entry) {
   try {
-    await fetch(RANKING_ENDPOINT, {
+    const response = await fetch(RANKING_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(entry),
     });
-    await loadRankings();
+    if (!response.ok) throw new Error("Ranking API unavailable");
+    const rankings = await response.json();
+    const ranked = rankEntries(rankings);
+    renderRankings(ranked);
+    return ranked;
   } catch {
     saveLocalRanking(entry);
-    renderRankings(readLocalRankings());
+    const ranked = readLocalRankings();
+    renderRankings(ranked);
+    return ranked;
   }
 }
 
+function renderRankingResult(container, rankings, entry) {
+  container.innerHTML = "";
+  const wrapper = document.createElement("div");
+  wrapper.className = "ranking-result";
+  const title = document.createElement("strong");
+  title.textContent = entry.comment ? `送信: 「${entry.comment}」` : "ランキング送信しました";
+  const list = document.createElement("ol");
+  rankEntries(rankings).forEach((rankedEntry, index) => {
+    const item = document.createElement("li");
+    const comment = rankedEntry.comment ? `「${rankedEntry.comment}」` : "";
+    item.textContent = `${index + 1}. ${rankedEntry.name} - ${rankedEntry.stages} stages / ${rankedEntry.score} ${comment}`;
+    list.append(item);
+  });
+  wrapper.append(title, list);
+  container.append(wrapper);
+}
+
 async function loadRankings() {
+  renderRankings(await fetchRankings());
+}
+
+async function fetchRankings() {
   try {
     const response = await fetch(RANKING_ENDPOINT);
     if (!response.ok) throw new Error("Ranking API unavailable");
     const rankings = await response.json();
-    renderRankings(rankEntries(rankings));
+    return rankEntries(rankings);
   } catch {
-    renderRankings(readLocalRankings());
+    return readLocalRankings();
   }
+}
+
+function isRankingCandidate(entry, rankings) {
+  const ranked = rankEntries([...rankings, entry]);
+  return ranked.some((rankedEntry) => rankedEntry.name === entry.name && rankedEntry.date === entry.date)
+    && ranked.findIndex((rankedEntry) => rankedEntry.name === entry.name && rankedEntry.date === entry.date) < RANKING_LIMIT;
+}
+
+function sanitizeRankingComment(comment, allowedLetters) {
+  const allowed = new Set(allowedLetters);
+  return [...normalizeKana(comment || "")]
+    .filter((char) => allowed.has(char))
+    .join("")
+    .slice(0, RANKING_COMMENT_LIMIT);
+}
+
+function uniqueLetters(letters) {
+  return [...new Set((letters || []).map((item) => normalizeKana(String(item))[0]).filter(Boolean))];
 }
 
 function readPlayerName() {
@@ -2248,7 +2357,7 @@ function readPlayerName() {
 
 function saveLocalRanking(entry) {
   const rankings = rankEntries([...readLocalRankings(), entry]);
-  localStorage.setItem("vbg-rankings", JSON.stringify(rankings.slice(0, 10)));
+  localStorage.setItem("vbg-rankings", JSON.stringify(rankings.slice(0, RANKING_LIMIT)));
 }
 
 function readLocalRankings() {
@@ -2260,18 +2369,10 @@ function readLocalRankings() {
 }
 
 function rankEntries(entries) {
-  const bestByName = new Map();
-  for (const entry of entries) {
-    if (!entry || !Number.isFinite(entry.stages) || !Number.isFinite(entry.score)) continue;
-    const current = bestByName.get(entry.name);
-    if (!current || entry.stages > current.stages || (entry.stages === current.stages && entry.score > current.score)) {
-      bestByName.set(entry.name, entry);
-    }
-  }
-  return [...bestByName.values()]
+  return (Array.isArray(entries) ? entries : [])
     .filter((entry) => entry && Number.isFinite(entry.stages) && Number.isFinite(entry.score))
-    .sort((a, b) => b.stages - a.stages || b.score - a.score)
-    .slice(0, 10);
+    .sort((a, b) => b.stages - a.stages || b.score - a.score || String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, RANKING_LIMIT);
 }
 
 function renderRankings(rankings) {
@@ -2284,7 +2385,8 @@ function renderRankings(rankings) {
   }
   rankings.forEach((entry, index) => {
     const item = document.createElement("li");
-    item.textContent = `${index + 1}. ${entry.name} - ${entry.stages} stages / ${entry.score}`;
+    const comment = entry.comment ? `「${entry.comment}」` : "";
+    item.textContent = `${index + 1}. ${entry.name} - ${entry.stages} stages / ${entry.score} ${comment}`;
     rankingListEl.append(item);
   });
 }
@@ -2330,6 +2432,13 @@ function shouldPreventKey(key) {
   return Boolean(keyAction(key)) || ["enter", "escape", " "].includes(key);
 }
 
+function isTextEntryTarget(target) {
+  return target instanceof HTMLInputElement
+    || target instanceof HTMLTextAreaElement
+    || target instanceof HTMLSelectElement
+    || Boolean(target?.isContentEditable);
+}
+
 function handleStartButton() {
   if (game.mode === "upgrade") {
     forgeSelectedWord();
@@ -2354,6 +2463,7 @@ debugBossSelectEl?.addEventListener("change", () => {
 debugStartBossEl?.addEventListener("click", debugStartBoss);
 
 window.addEventListener("keydown", (event) => {
+  if (isTextEntryTarget(event.target)) return;
   const key = normalizeInputKey(event);
   handleDebugCommandKey(key);
   if (shouldPreventKey(key)) event.preventDefault();
@@ -2366,6 +2476,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("keyup", (event) => {
+  if (isTextEntryTarget(event.target)) return;
   const key = normalizeInputKey(event);
   keys.delete(key);
 });
