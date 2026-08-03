@@ -109,6 +109,7 @@ try {
   assert(js.includes("Iron Comet"), "script.js should include a boomerang boss");
   assert(js.includes("Mirage Needle"), "script.js should include a teleport boss");
   assert(js.includes("Echo Seed"), "script.js should include a splitting bounce boss");
+  assert(js.includes("Marquee Mask"), "script.js should include a sign-preview boss");
   assert(js.includes("function selectBossDesign"), "script.js should rotate boss designs");
   assert(js.includes("function bossAttributeMultiplier"), "script.js should apply boss weakness and resistance");
   assert(js.includes('bullet.attribute === "pattern"'), "dark shots should hit every boss weakness");
@@ -120,6 +121,9 @@ try {
   assert(js.includes("function firePauseAimFan"), "script.js should give Iron Comet stop-and-aim spreads");
   assert(js.includes('motion = "split-bounce"'), "script.js should include splitting bounce bullets");
   assert(js.includes("function fireSplitBounceSeed"), "script.js should give Echo Seed a one-shot splitting attack");
+  assert(js.includes("function startMarqueeSequence"), "script.js should preview three boss attacks before executing them");
+  assert(js.includes("function performMarqueeAttack"), "script.js should execute previewed attacks in order");
+  assert(js.includes("function marqueeAttackInfo"), "script.js should label previewed attack cards");
   assert(js.includes("function teleportBoss"), "script.js should include boss teleport movement");
   assert(js.includes("function startMirageSpecial"), "script.js should include Mirage Needle's charged special sequence");
   assert(js.includes("function updateMirageSpecial"), "script.js should step Mirage Needle through its teleport special");
@@ -132,6 +136,8 @@ try {
   assert(js.includes("function drawCometBoss"), "script.js should draw a unique comet boss");
   assert(js.includes("function drawMirageBoss"), "script.js should draw a unique mirage boss");
   assert(js.includes("function drawEchoBoss"), "script.js should draw a unique echo boss");
+  assert(js.includes("function drawMarqueeBoss"), "script.js should draw a unique marquee boss");
+  assert(js.includes("function drawMarqueeSigns"), "script.js should draw large preview signs");
   assert(js.includes("enterUpgrade();"), "boss defeat should return to the upgrade board");
   assert(js.includes("collect more letters"), "non-boss phases should keep collecting letters");
   assert(js.includes("function enterUpgrade"), "script.js should include upgrade selection between phases");
@@ -166,6 +172,7 @@ try {
   assert(js.includes("やみよ"), "script.js should include a dark high-roll word");
   assert(js.includes('words: ["やみよ", "よる", "かげ"]'), "dark word tags should stay intentionally rare");
   assert(js.includes("function buildHighRollChoices"), "script.js should create special choices for high-roll words");
+  assert(js.includes("function renderSpecialUpgradeWords"), "script.js should show high-roll words on the upgrade board");
   assert(js.includes("function cycleShotAttribute"), "script.js should switch shot attributes");
   assert(js.includes("function fireAttributeShots"), "script.js should fire different bullet patterns by attribute");
   assert(js.includes("attributeMods"), "script.js should track per-attribute shot upgrades");

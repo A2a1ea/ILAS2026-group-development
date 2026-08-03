@@ -149,6 +149,15 @@ const BOSS_DESIGNS = [
     accent: "#baf6ff",
     message: "Echo Seed: 氷で跳ね返る増殖弾を冷ませ",
   },
+  {
+    id: "marquee",
+    name: "Marquee Mask",
+    weak: "pattern",
+    resist: "attack",
+    color: "#c99cff",
+    accent: "#ffd36e",
+    message: "Marquee Mask: 看板の順番を覚えて闇で崩せ",
+  },
 ];
 const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
@@ -583,6 +592,12 @@ function updateBoss(dt) {
     return;
   }
 
+  if (boss.design.id === "marquee" && boss.marquee) {
+    updateMarqueeSequence(boss, dt * slowScale, stageDensityScale());
+    boss.x = WIDTH / 2 + Math.sin(game.time * 0.86 * slowScale) * 78;
+    return;
+  }
+
   boss.attackTimer -= dt * slowScale;
 
   if (boss.attackTimer <= 0 && boss.y >= 104) {
@@ -671,6 +686,11 @@ function fireBossPattern(boss, density) {
       boss.echoSeedFired = true;
       fireSplitBounceSeed(boss, density);
     }
+    return;
+  }
+
+  if (boss.design.id === "marquee") {
+    startMarqueeSequence(boss, density);
     return;
   }
 
@@ -926,6 +946,73 @@ function queueBossBeam(x, width, delay, duration, color) {
 
 function queueSafeZone(safeX, safeWidth, delay, duration, color) {
   game.bossWarnings.push({ type: "safe-zone", safeX: clamp(safeX, safeWidth / 2, WIDTH - safeWidth / 2), safeWidth, delay, duration, age: 0, color });
+}
+
+function startMarqueeSequence(boss, density) {
+  const pool = ["fan", "beam", "ring", "safe", "aim"];
+  const start = (Math.floor(boss.entry * 3 + game.phase + density) || 0) % pool.length;
+  boss.marquee = {
+    state: "show",
+    age: 0,
+    sequence: [pool[start], pool[(start + 2) % pool.length], pool[(start + 4) % pool.length]],
+    attackIndex: 0,
+    attackTimer: 0.18,
+    density,
+  };
+  setMessage("Marquee Mask: 看板3枚の順番どおりに来る");
+}
+
+function updateMarqueeSequence(boss, dt, density) {
+  const marquee = boss.marquee;
+  marquee.age += dt;
+  if (marquee.state === "show") {
+    if (marquee.age >= 2.15) {
+      marquee.state = "attack";
+      marquee.age = 0;
+      marquee.attackTimer = 0.22;
+    }
+    return;
+  }
+  if (marquee.state === "attack") {
+    marquee.attackTimer -= dt;
+    if (marquee.attackTimer <= 0) {
+      performMarqueeAttack(boss, marquee.sequence[marquee.attackIndex], Math.max(density, marquee.density || 0));
+      marquee.attackIndex += 1;
+      marquee.attackTimer = 1.04;
+      if (marquee.attackIndex >= marquee.sequence.length) {
+        marquee.state = "rest";
+        marquee.age = 0;
+      }
+    }
+    return;
+  }
+  if (marquee.state === "rest" && marquee.age >= 0.82) {
+    boss.marquee = null;
+    boss.attackTimer = Math.max(0.72, 1.05 - density * 0.05);
+  }
+}
+
+function performMarqueeAttack(boss, type, density) {
+  if (type === "fan") {
+    fireFan(boss.x, boss.y + 28, Math.PI / 2, 11 + density * 2, 1.05, 206 + density * 8, boss.design.color);
+  } else if (type === "beam") {
+    queueBossBeam(clamp(game.player.x, 46, WIDTH - 46), 42, 0.58, 0.38, boss.design.accent);
+  } else if (type === "ring") {
+    fireCircle(boss.x, boss.y + 10, 18 + density * 3, 138 + density * 7, boss.design.color, boss.entry * 1.25);
+  } else if (type === "safe") {
+    queueSafeZone(74 + Math.random() * (WIDTH - 148), 116, 0.72, 0.48, boss.design.accent);
+  } else {
+    const count = 3 + Math.min(5, density);
+    for (let i = 0; i < count; i += 1) fireAimed(boss.x + (i - (count - 1) / 2) * 28, boss.y + 28, 218 + density * 8, 6);
+  }
+}
+
+function marqueeAttackInfo(type) {
+  if (type === "fan") return { icon: "扇", label: "FAN", color: "#c99cff" };
+  if (type === "beam") return { icon: "線", label: "BEAM", color: "#ffd36e" };
+  if (type === "ring") return { icon: "円", label: "RING", color: "#79e7ff" };
+  if (type === "safe") return { icon: "避", label: "SAFE", color: "#d6ff8f" };
+  return { icon: "狙", label: "AIM", color: "#ff6b9a" };
 }
 
 function updateBossWarnings(dt) {
@@ -1264,6 +1351,8 @@ function renderUpgradeBoard() {
   actions.append(undo, clear);
   panel.append(actions);
 
+  panel.append(renderSpecialUpgradeWords());
+
   const note = document.createElement("span");
   note.className = "board-note";
   note.textContent = game.upgradeBoard.message;
@@ -1296,6 +1385,22 @@ function renderUpgradeChoices() {
     choices.append(card);
   });
   return choices;
+}
+
+function renderSpecialUpgradeWords() {
+  const wrapper = document.createElement("span");
+  wrapper.className = "special-word-list";
+  const label = document.createElement("strong");
+  label.textContent = "特殊強化";
+  wrapper.append(label);
+  for (const [word, upgrade] of HIGH_ROLL_WORDS) {
+    const chip = document.createElement("span");
+    chip.className = `special-word-chip buff-${upgrade.type || "pattern"}`;
+    chip.textContent = `${word} ${upgrade.label}`;
+    chip.title = upgrade.description;
+    wrapper.append(chip);
+  }
+  return wrapper;
 }
 
 async function forgeSelectedWord() {
@@ -1988,6 +2093,7 @@ function checkCollisions() {
   const p = game.player;
   if (p.invuln <= 0) {
     for (const warning of game.bossWarnings) {
+      if (p.invuln > 0) break;
       if (bossWarningHitsPlayer(warning, p)) {
         damagePlayer();
         break;
@@ -2148,10 +2254,11 @@ function drawBackground() {
 
 function drawPlayer() {
   const p = game.player;
+  const attribute = currentShotAttribute();
   ctx.save();
   ctx.globalAlpha = p.invuln > 0 ? 0.55 + Math.sin(game.time * 30) * 0.25 : 1;
-  ctx.fillStyle = "#79e7ff";
-  ctx.shadowColor = "#79e7ff";
+  ctx.fillStyle = attribute.color;
+  ctx.shadowColor = attribute.glow || attribute.color;
   ctx.shadowBlur = 18;
   ctx.beginPath();
   ctx.moveTo(p.x, p.y - 19);
@@ -2160,9 +2267,17 @@ function drawPlayer() {
   ctx.lineTo(p.x + 15, p.y + 16);
   ctx.closePath();
   ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "rgba(238, 248, 255, 0.72)";
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - 10);
+  ctx.lineTo(p.x - 5, p.y + 8);
+  ctx.lineTo(p.x, p.y + 4);
+  ctx.lineTo(p.x + 5, p.y + 8);
+  ctx.closePath();
+  ctx.fill();
   if (isActionPressed("focus")) {
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "#ffd36e";
+    ctx.strokeStyle = attribute.glow || attribute.color;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(p.x, p.y, HIT_RADIUS + 3, 0, Math.PI * 2);
@@ -2273,6 +2388,7 @@ function drawBoss() {
   else if (b.design.id === "comet") drawCometBoss(b);
   else if (b.design.id === "mirage") drawMirageBoss(b);
   else if (b.design.id === "echo") drawEchoBoss(b);
+  else if (b.design.id === "marquee") drawMarqueeBoss(b);
   else drawVioletBoss(b);
   if (b.teleportFlash > 0) {
     ctx.globalAlpha = Math.min(1, b.teleportFlash * 3);
@@ -2417,6 +2533,30 @@ function drawEchoBoss(b) {
   ctx.fill();
 }
 
+function drawMarqueeBoss(b) {
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0, 0, b.radius * 0.78, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#071120";
+  ctx.beginPath();
+  ctx.arc(-15, -5, 7, 0, Math.PI * 2);
+  ctx.arc(15, -5, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = b.design.accent;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, 5, b.radius * 0.38, 0.12, Math.PI - 0.12);
+  ctx.stroke();
+  ctx.fillStyle = b.design.accent;
+  ctx.font = "900 22px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("予", 0, 2);
+}
+
 function drawVioletBoss(b) {
   ctx.beginPath();
   ctx.moveTo(0, -b.radius);
@@ -2481,6 +2621,7 @@ function drawEnemyBullets() {
 
 function drawBossWarnings() {
   ctx.save();
+  drawMarqueeSigns();
   for (const warning of game.bossWarnings) {
     const active = bossWarningActive(warning);
     const warnRatio = clamp(warning.age / Math.max(0.01, warning.delay), 0, 1);
@@ -2506,6 +2647,69 @@ function drawBossWarnings() {
     }
   }
   ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawMarqueeSigns() {
+  const boss = game.boss;
+  const marquee = boss?.marquee;
+  if (boss?.design.id !== "marquee" || !marquee) return;
+  ctx.save();
+  if (marquee.state === "show") {
+    const appear = clamp(marquee.age / 0.45, 0, 1);
+    const cardW = 132;
+    const cardH = 118;
+    const y = 155;
+    marquee.sequence.forEach((type, index) => {
+      const x = WIDTH / 2 + (index - 1) * 150;
+      drawMarqueeCard(x, y, cardW, cardH, type, index + 1, appear, true);
+    });
+  } else {
+    const cardW = 78;
+    const cardH = 58;
+    const y = 78;
+    marquee.sequence.forEach((type, index) => {
+      const x = WIDTH / 2 + (index - 1) * 88;
+      const active = marquee.state === "attack" && index === marquee.attackIndex;
+      const done = marquee.state !== "show" && index < marquee.attackIndex;
+      drawMarqueeCard(x, y, cardW, cardH, type, index + 1, done ? 0.42 : 0.9, active);
+    });
+  }
+  ctx.restore();
+}
+
+function drawMarqueeCard(x, y, w, h, type, number, alpha, large) {
+  const info = marqueeAttackInfo(type);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.fillStyle = "rgba(7, 17, 32, 0.88)";
+  ctx.strokeStyle = info.color;
+  ctx.lineWidth = large ? 4 : 2.5;
+  ctx.shadowColor = info.color;
+  ctx.shadowBlur = large ? 18 : 10;
+  ctx.beginPath();
+  ctx.roundRect(-w / 2, -h / 2, w, h, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = info.color;
+  ctx.font = `900 ${large ? 36 : 22}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(info.icon, 0, large ? -10 : -4);
+  ctx.font = `900 ${large ? 14 : 10}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillStyle = "#eef8ff";
+  ctx.fillText(`${number}. ${info.label}`, 0, large ? 31 : 19);
+  ctx.fillStyle = "rgba(238, 248, 255, 0.72)";
+  ctx.beginPath();
+  ctx.arc(0, large ? -42 : -22, large ? 13 : 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#071120";
+  ctx.beginPath();
+  ctx.arc(large ? -4 : -2, large ? -43 : -23, large ? 2.2 : 1.4, 0, Math.PI * 2);
+  ctx.arc(large ? 4 : 2, large ? -43 : -23, large ? 2.2 : 1.4, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
