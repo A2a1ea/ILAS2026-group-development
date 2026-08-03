@@ -65,9 +65,38 @@ const KEY_PRESETS = {
   },
 };
 const SHOT_ATTRIBUTES = [
-  { id: "attack", label: "Attack", color: "#ff6b9a", glow: "#ff6b9a", damage: 1.18 },
-  { id: "mobility", label: "Speed", color: "#79e7ff", glow: "#79e7ff", damage: 1 },
-  { id: "control", label: "Control", color: "#ffd36e", glow: "#ffd36e", damage: 0.92 },
+  { id: "attack", label: "炎", color: "#ff6b9a", glow: "#ff6b9a", damage: 1.18 },
+  { id: "mobility", label: "風", color: "#79e7ff", glow: "#79e7ff", damage: 1 },
+  { id: "control", label: "氷", color: "#baf6ff", glow: "#79e7ff", damage: 0.92 },
+];
+const BOSS_DESIGNS = [
+  {
+    id: "ember",
+    name: "Ember Crown",
+    weak: "attack",
+    resist: "control",
+    color: "#ff6b9a",
+    accent: "#ffd36e",
+    message: "Ember Crown: 炎で王冠を砕け",
+  },
+  {
+    id: "azure",
+    name: "Azure Spiral",
+    weak: "mobility",
+    resist: "attack",
+    color: "#79e7ff",
+    accent: "#d6ff8f",
+    message: "Azure Spiral: 風で軌道を切れ",
+  },
+  {
+    id: "violet",
+    name: "Violet Script",
+    weak: "control",
+    resist: "mobility",
+    color: "#b98cff",
+    accent: "#ffd36e",
+    message: "Violet Script: 氷で呪文をほどけ",
+  },
 ];
 const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
@@ -113,6 +142,7 @@ function createGame(mode = "title") {
     bossTimer: 0,
     kills: 0,
     hits: 0,
+    riskBulletPressure: 0,
     shotAttributeIndex: 0,
     scroll: 0,
     flash: 0,
@@ -125,6 +155,8 @@ function createGame(mode = "title") {
       activeCellIndex: null,
       foundWords: [],
       pendingUpgrades: [],
+      choiceOptions: [],
+      choosing: false,
       message: "Choose any square for your first letter.",
       busy: false,
     },
@@ -291,7 +323,7 @@ function cycleShotAttribute() {
   if (!["phase", "final"].includes(game.mode)) return;
   game.shotAttributeIndex = (game.shotAttributeIndex + 1) % SHOT_ATTRIBUTES.length;
   const attribute = currentShotAttribute();
-  setMessage(`Attribute: ${attribute.label}`);
+  setMessage(`属性: ${attribute.label}`);
   updateHud();
 }
 
@@ -394,20 +426,54 @@ function updateBoss(dt) {
   if (boss.attackTimer <= 0 && boss.y >= 104) {
     const density = stageDensityScale();
     boss.phase = boss.hp < boss.maxHp * 0.35 ? 3 : (boss.phase + 1) % 3;
-    if (boss.phase === 0) fireFan(boss.x, boss.y + 24, Math.PI / 2, 7 + density * 2, 0.75, 165 + density * 10, "#ff7da8");
-    if (boss.phase === 1) fireCircle(boss.x, boss.y + 10, 14 + density * 3, 118 + density * 8, "#ffd36e");
-    if (boss.phase === 2) {
-      const aimedCount = 3 + Math.min(5, density);
-      for (let i = 0; i < aimedCount; i += 1) fireAimed(boss.x + (i - (aimedCount - 1) / 2) * 24, boss.y + 30, 185 + density * 8, 7);
-    }
-    if (boss.phase === 3) {
-      fireCircle(boss.x, boss.y + 10, 18 + density * 3, 145 + density * 8, "#ff5b93", boss.entry * 0.9);
-      fireFan(boss.x, boss.y + 28, Math.PI / 2, 9 + density * 2, 0.95, 195 + density * 8, "#79e7ff");
-    }
+    fireBossPattern(boss, density);
     boss.attackTimer = Math.max(0.58, (boss.phase === 3 ? 0.9 : 1.25) - density * 0.05);
   }
 
-  boss.x = WIDTH / 2 + Math.sin(game.time * 1.2 * slowScale) * 92;
+  const movement = boss.design.id === "azure" ? 128 : boss.design.id === "violet" ? 74 : 92;
+  const rate = boss.design.id === "ember" ? 1.05 : boss.design.id === "azure" ? 1.55 : 0.9;
+  boss.x = WIDTH / 2 + Math.sin(game.time * rate * slowScale) * movement;
+}
+
+function fireBossPattern(boss, density) {
+  if (boss.design.id === "ember") {
+    if (boss.phase === 0) fireFan(boss.x, boss.y + 24, Math.PI / 2, 9 + density * 2, 0.85, 178 + density * 10, boss.design.color);
+    if (boss.phase === 1) fireCircle(boss.x, boss.y + 10, 12 + density * 3, 126 + density * 8, boss.design.accent, boss.entry * 0.6);
+    if (boss.phase === 2) fireFan(boss.x, boss.y + 28, Math.PI / 2, 5 + density, 0.36, 245 + density * 8, "#ff9f55");
+    if (boss.phase === 3) {
+      fireCircle(boss.x, boss.y + 10, 20 + density * 3, 150 + density * 8, boss.design.color, boss.entry);
+      fireFan(boss.x, boss.y + 28, Math.PI / 2, 11 + density * 2, 1.05, 210 + density * 8, boss.design.accent);
+    }
+    return;
+  }
+
+  if (boss.design.id === "azure") {
+    if (boss.phase === 0) fireCircle(boss.x, boss.y + 10, 16 + density * 3, 128 + density * 7, boss.design.color, boss.entry * 1.35);
+    if (boss.phase === 1) fireCircle(boss.x, boss.y + 10, 16 + density * 3, 128 + density * 7, boss.design.accent, -boss.entry * 1.1);
+    if (boss.phase === 2) {
+      const aimedCount = 4 + Math.min(6, density);
+      for (let i = 0; i < aimedCount; i += 1) fireAimed(boss.x + (i - (aimedCount - 1) / 2) * 22, boss.y + 30, 205 + density * 8, 6);
+    }
+    if (boss.phase === 3) {
+      fireCircle(boss.x, boss.y + 10, 24 + density * 3, 162 + density * 8, boss.design.color, boss.entry * 1.6);
+      fireCircle(boss.x, boss.y + 10, 12 + density * 2, 118 + density * 6, boss.design.accent, -boss.entry * 1.35);
+    }
+    return;
+  }
+
+  if (boss.phase === 0) {
+    const count = 6 + Math.min(7, density);
+    for (let i = 0; i < count; i += 1) {
+      const x = 42 + (i / Math.max(1, count - 1)) * (WIDTH - 84);
+      fireBullet(x, boss.y + 18, Math.sin(boss.entry + i) * 38, 150 + density * 8, 6, boss.design.color);
+    }
+  }
+  if (boss.phase === 1) fireFan(boss.x, boss.y + 28, Math.PI / 2, 13 + density * 2, 1.2, 158 + density * 8, boss.design.accent);
+  if (boss.phase === 2) fireCircle(boss.x, boss.y + 10, 18 + density * 3, 112 + density * 8, boss.design.color, boss.entry * 0.72);
+  if (boss.phase === 3) {
+    fireFan(boss.x, boss.y + 28, Math.PI / 2, 15 + density * 2, 1.35, 195 + density * 8, boss.design.color);
+    fireCircle(boss.x, boss.y + 10, 16 + density * 2, 138 + density * 8, boss.design.accent, boss.entry * 1.2);
+  }
 }
 
 function fireAimed(x, y, speed, radius) {
@@ -456,7 +522,7 @@ function inventoryMoveScale() {
 }
 
 function inventoryBulletPressure() {
-  return 1 + Math.max(0, game.inventory.length - 14) * 0.018;
+  return 1 + Math.max(0, game.inventory.length - 14) * 0.018 + (game.riskBulletPressure || 0);
 }
 
 function stageDensityScale() {
@@ -595,6 +661,8 @@ function enterUpgrade() {
     activeCellIndex: null,
     foundWords: [],
     pendingUpgrades: [],
+    choiceOptions: [],
+    choosing: false,
     message: "Choose any square for your first letter.",
     busy: false,
   };
@@ -642,7 +710,9 @@ function renderUpgradeBoard() {
 
   const rack = document.createElement("span");
   rack.className = "letter-bank";
-  if (game.inventory.length) {
+  if (game.upgradeBoard.choosing) {
+    rack.append(renderUpgradeChoices());
+  } else if (game.inventory.length) {
     game.inventory.forEach((item, index) => {
       const letter = document.createElement("button");
       letter.type = "button";
@@ -677,7 +747,7 @@ function renderUpgradeBoard() {
   const undo = document.createElement("button");
   undo.type = "button";
   undo.textContent = "Remove Last";
-  undo.disabled = game.upgradeBoard.busy || !getPlacedCells().length;
+  undo.disabled = game.upgradeBoard.busy || game.upgradeBoard.choosing || !getPlacedCells().length;
   undo.addEventListener("click", () => {
     const placed = getPlacedCells();
     const last = placed[placed.length - 1];
@@ -691,13 +761,15 @@ function renderUpgradeBoard() {
   const clear = document.createElement("button");
   clear.type = "button";
   clear.textContent = "Clear";
-  clear.disabled = game.upgradeBoard.busy || !getPlacedCells().length;
+  clear.disabled = game.upgradeBoard.busy || game.upgradeBoard.choosing || !getPlacedCells().length;
   clear.addEventListener("click", () => {
     game.upgradeBoard.cells = Array(BOARD_SIZE).fill(null);
     game.upgradeBoard.activeIndex = null;
     game.upgradeBoard.activeCellIndex = null;
     game.upgradeBoard.foundWords = [];
     game.upgradeBoard.pendingUpgrades = [];
+    game.upgradeBoard.choiceOptions = [];
+    game.upgradeBoard.choosing = false;
     game.upgradeBoard.message = "Choose any square for your first letter.";
     renderUpgradeBoard();
   });
@@ -711,17 +783,42 @@ function renderUpgradeBoard() {
   hint.append(panel);
 }
 
+function renderUpgradeChoices() {
+  const choices = document.createElement("span");
+  choices.className = "upgrade-choices";
+  game.upgradeBoard.choiceOptions.forEach((choice, index) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `upgrade-card upgrade-${choice.upgrade.type || "pattern"}${choice.risk ? " risky" : ""}`;
+    card.addEventListener("click", () => chooseUpgradeReward(index));
+
+    const title = document.createElement("strong");
+    title.textContent = choice.name;
+    const word = document.createElement("span");
+    word.textContent = `${choice.upgrade.word} / ${choice.upgrade.label}+${choice.upgrade.power}`;
+    const detail = document.createElement("small");
+    detail.textContent = choice.detail;
+    card.append(title, word, detail);
+    if (choice.risk) {
+      const risk = document.createElement("small");
+      risk.className = "risk-text";
+      risk.textContent = choice.risk.label;
+      card.append(risk);
+    }
+    choices.append(card);
+  });
+  return choices;
+}
+
 async function forgeSelectedWord() {
   if (game.mode !== "upgrade" || game.upgradeBoard.busy) return;
+  if (game.upgradeBoard.choosing) return;
   const validUpgrades = game.upgradeBoard.pendingUpgrades;
-  if (!validUpgrades.length) {
-    applyDynamicUpgrade(createFallbackUpgrade("wild"));
-    advanceAfterUpgrade();
-    return;
-  }
-  consumePlacedLetters();
-  for (const upgrade of validUpgrades.slice(0, 3)) applyDynamicUpgrade(upgrade);
-  advanceAfterUpgrade();
+  const seedUpgrade = validUpgrades[validUpgrades.length - 1] || createFallbackUpgrade("wild");
+  game.upgradeBoard.choiceOptions = buildUpgradeChoices(seedUpgrade);
+  game.upgradeBoard.choosing = true;
+  game.upgradeBoard.message = "Choose one upgrade reward.";
+  renderUpgradeBoard();
 }
 
 function advanceAfterUpgrade() {
@@ -730,8 +827,18 @@ function advanceAfterUpgrade() {
   startNextPhase();
 }
 
+function chooseUpgradeReward(index) {
+  if (!game.upgradeBoard.choosing) return;
+  const choice = game.upgradeBoard.choiceOptions[index];
+  if (!choice) return;
+  consumePlacedLetters();
+  applyDynamicUpgrade(choice.upgrade);
+  if (choice.risk) applyUpgradeRisk(choice.risk);
+  advanceAfterUpgrade();
+}
+
 async function toggleBoardCell(cellIndex) {
-  if (game.upgradeBoard.busy) return;
+  if (game.upgradeBoard.busy || game.upgradeBoard.choosing) return;
   const cell = game.upgradeBoard.cells[cellIndex];
   if (cell) {
     game.upgradeBoard.cells[cellIndex] = null;
@@ -756,6 +863,7 @@ async function toggleBoardCell(cellIndex) {
 }
 
 async function placeLetterFromRack(sourceIndex) {
+  if (game.upgradeBoard.choosing) return;
   if (isInventoryIndexOnBoard(sourceIndex)) return;
   let targetIndex = game.upgradeBoard.activeCellIndex;
   if (targetIndex == null || !canPlaceAt(targetIndex)) targetIndex = firstPlayableCell();
@@ -768,6 +876,7 @@ async function placeLetterFromRack(sourceIndex) {
 }
 
 async function placeLetterAt(cellIndex, sourceIndex) {
+  if (game.upgradeBoard.choosing) return;
   const item = game.inventory[sourceIndex];
   game.upgradeBoard.cells[cellIndex] = {
     char: inventoryChar(item),
@@ -866,6 +975,75 @@ function amplifyUpgrade(upgrade, multiplier) {
     title: `${upgrade.title} x${multiplier}`,
     description: `${upgrade.description} x${multiplier}`,
   };
+}
+
+function buildUpgradeChoices(seedUpgrade) {
+  const base = normalizeUpgradeChoice(seedUpgrade, "安定強化", "作った単語をそのまま伸ばす。");
+  const risky = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: seedUpgrade.power + 2,
+      title: `${seedUpgrade.title} +Risk`,
+      description: `${seedUpgrade.description} リスクを背負って効果増幅。`,
+    },
+    "リスク強化",
+    "強い代わりに次フェーズの弾圧が上がる。",
+    { bulletPressure: 0.12, label: "次フェーズ弾圧 +12%" },
+  );
+  const counterType = nextBossCounterType();
+  const counter = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      type: counterType,
+      label: upgradeLabelForType(counterType),
+      power: Math.max(2, seedUpgrade.power),
+      title: `${attributeLabelForType(counterType)}対策 ${seedUpgrade.word}`,
+      description: `次のボス弱点に寄せた${attributeLabelForType(counterType)}強化。`,
+    },
+    "ボス対策",
+    "次に来る夜ボスの弱点へ寄せる。",
+  );
+  return [base, risky, counter];
+}
+
+function normalizeUpgradeChoice(upgrade, name, detail, risk = null) {
+  return {
+    name,
+    detail,
+    risk,
+    upgrade: {
+      ...upgrade,
+      valid: true,
+      power: Math.max(1, Math.round(upgrade.power || 1)),
+      label: upgrade.label || upgradeLabelForType(upgrade.type),
+      title: upgrade.title || `${upgrade.word} ${upgradeLabelForType(upgrade.type)}`,
+      description: upgrade.description || describeDynamicUpgrade(upgrade.type, upgrade.power || 1),
+    },
+  };
+}
+
+function nextBossCounterType() {
+  const nextBossPhase = Math.ceil((game.phase + 1) / 3) * 3;
+  return selectBossDesign(nextBossPhase).weak;
+}
+
+function upgradeLabelForType(type) {
+  if (type === "attack") return "攻撃";
+  if (type === "mobility") return "移動";
+  if (type === "defense") return "守り";
+  if (type === "control") return "制御";
+  if (type === "life") return "生命";
+  return "弾幕";
+}
+
+function attributeLabelForType(type) {
+  return SHOT_ATTRIBUTES.find((attribute) => attribute.id === type)?.label || upgradeLabelForType(type);
+}
+
+function applyUpgradeRisk(risk) {
+  if (risk.bulletPressure) {
+    game.riskBulletPressure = (game.riskBulletPressure || 0) + risk.bulletPressure;
+  }
 }
 
 function getWordsThroughCell(cellIndex) {
@@ -1126,6 +1304,7 @@ function startFinalBattle() {
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
   const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
+  const design = selectBossDesign(game.phase);
   game.boss = {
     x: WIDTH / 2,
     y: -70,
@@ -1135,9 +1314,22 @@ function startFinalBattle() {
     phase: 0,
     attackTimer: 0,
     entry: 0,
+    design,
   };
   lastFrame = performance.now();
-  setMessage(`Boss ${Math.floor(game.phase / 3)}: break through`);
+  setMessage(design.message);
+}
+
+function selectBossDesign(phase) {
+  const bossIndex = Math.max(0, Math.floor(phase / 3) - 1);
+  return BOSS_DESIGNS[bossIndex % BOSS_DESIGNS.length];
+}
+
+function bossAttributeMultiplier(boss, bullet) {
+  if (bullet.type === "letter") return 0.65;
+  if (bullet.attribute === boss.design.weak) return 1.65;
+  if (bullet.attribute === boss.design.resist) return 0.62;
+  return 1;
 }
 
 function restoreOverlayHint() {
@@ -1175,9 +1367,11 @@ function checkCollisions() {
       }
     }
     if (!consumed && game.boss && distance(bullet, game.boss) < bullet.radius + game.boss.radius) {
-      game.boss.hp -= bullet.damage;
+      const multiplier = bossAttributeMultiplier(game.boss, bullet);
+      game.boss.hp -= bullet.damage * multiplier;
       consumed = true;
-      burst(bullet.x, bullet.y, "#ffd36e", 3);
+      const burstColor = multiplier > 1 ? game.boss.design.accent : multiplier < 1 ? "rgba(238, 248, 255, 0.55)" : game.boss.design.color;
+      burst(bullet.x, bullet.y, burstColor, multiplier > 1 ? 8 : 3);
       if (game.boss.hp <= 0) {
         clearBossPhase();
         return;
@@ -1415,17 +1609,94 @@ function drawEnemies() {
 function drawBoss() {
   const b = game.boss;
   if (!b) return;
-  ctx.fillStyle = "#ff6b9a";
-  ctx.shadowColor = "#ff6b9a";
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.fillStyle = b.design.color;
+  ctx.strokeStyle = b.design.accent;
+  ctx.shadowColor = b.design.color;
   ctx.shadowBlur = 24;
+  if (b.design.id === "ember") drawEmberBoss(b);
+  else if (b.design.id === "azure") drawAzureBoss(b);
+  else drawVioletBoss(b);
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = "800 13px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = b.design.accent;
+  ctx.shadowColor = "#071120";
+  ctx.shadowBlur = 8;
+  ctx.fillText(`${b.design.name}  弱点: ${bossWeakLabel(b)}`, b.x, b.y + b.radius + 30);
+  ctx.restore();
+}
+
+function drawEmberBoss(b) {
   ctx.beginPath();
-  ctx.ellipse(b.x, b.y, b.radius * 1.25, b.radius, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 8, b.radius * 1.18, b.radius * 0.82, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#ffd36e";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.fillStyle = b.design.accent;
   ctx.beginPath();
-  ctx.arc(b.x, b.y + 4, b.radius * 0.42, 0, Math.PI * 2);
+  ctx.moveTo(-42, -8);
+  ctx.lineTo(-27, -42);
+  ctx.lineTo(-10, -12);
+  ctx.lineTo(0, -50);
+  ctx.lineTo(10, -12);
+  ctx.lineTo(27, -42);
+  ctx.lineTo(42, -8);
+  ctx.closePath();
   ctx.fill();
+  ctx.fillStyle = "#241606";
+  ctx.beginPath();
+  ctx.arc(-18, 9, 7, 0, Math.PI * 2);
+  ctx.arc(18, 9, 7, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAzureBoss(b) {
+  ctx.lineWidth = 5;
+  for (let i = 0; i < 3; i += 1) {
+    ctx.rotate((game.time * 0.7) + i * (Math.PI * 2 / 3));
+    ctx.beginPath();
+    ctx.ellipse(0, 0, b.radius * 1.35, b.radius * 0.28, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(7, 17, 32, 0.88)";
+  ctx.beginPath();
+  ctx.arc(0, 0, b.radius * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = b.design.color;
+  ctx.beginPath();
+  ctx.arc(0, 0, b.radius * 0.34, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawVioletBoss(b) {
+  ctx.beginPath();
+  ctx.moveTo(0, -b.radius);
+  ctx.lineTo(b.radius * 0.95, -6);
+  ctx.lineTo(b.radius * 0.58, b.radius * 0.82);
+  ctx.lineTo(-b.radius * 0.58, b.radius * 0.82);
+  ctx.lineTo(-b.radius * 0.95, -6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.stroke();
   ctx.shadowBlur = 0;
+  ctx.fillStyle = b.design.accent;
+  ctx.font = "900 34px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("字", 0, 6);
+  ctx.strokeStyle = "rgba(238, 248, 255, 0.74)";
+  ctx.beginPath();
+  ctx.arc(0, 2, b.radius * 0.68, game.time * 0.7, game.time * 0.7 + Math.PI * 1.35);
+  ctx.stroke();
+}
+
+function bossWeakLabel(boss) {
+  return SHOT_ATTRIBUTES.find((attribute) => attribute.id === boss.design.weak)?.label || boss.design.weak;
 }
 
 function drawEnemyBullets() {
@@ -1476,11 +1747,18 @@ function drawParticles() {
 function drawBossHp() {
   if (!game.boss) return;
   const w = WIDTH - 64;
-  const pct = clamp(game.boss.hp / game.boss.maxHp, 0, 1);
+  const boss = game.boss;
+  const pct = clamp(boss.hp / boss.maxHp, 0, 1);
+  ctx.save();
   ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
   ctx.fillRect(32, 32, w, 8);
-  ctx.fillStyle = "#ff6b9a";
+  ctx.fillStyle = boss.design.color;
   ctx.fillRect(32, 32, w * pct, 8);
+  ctx.font = "800 12px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillStyle = boss.design.accent;
+  ctx.fillText(`${boss.design.name} / 弱点 ${bossWeakLabel(boss)}`, 32, 25);
+  ctx.restore();
 }
 
 function drawMessage() {
@@ -1515,7 +1793,7 @@ function updateHud() {
   const activeEffects = Object.entries(game.effects)
     .filter(([, time]) => time > 0)
     .map(([name, time]) => `${name} ${Math.ceil(time)}s`);
-  const attributeText = `Attr: ${currentShotAttribute().label}`;
+  const attributeText = `属性: ${currentShotAttribute().label}`;
   const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
   effectsEl.textContent = [attributeText, activeEffects.join(" / "), upgrades].filter(Boolean).join(" | ");
   updateBuffTray();

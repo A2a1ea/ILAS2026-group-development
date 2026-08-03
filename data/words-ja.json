@@ -131,6 +131,12 @@
       "label": "制御"
     },
     {
+      "word": "けいおん",
+      "type": "pattern",
+      "label": "弾幕",
+      "source": "wiktionary"
+    },
+    {
       "word": "ごはん",
       "type": "life",
       "label": "生命"
