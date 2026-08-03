@@ -3050,10 +3050,10 @@ function renderRankingResult(container, rankings, entry) {
   const title = document.createElement("strong");
   title.textContent = entry.comment ? `送信: 「${entry.comment}」` : "ランキング送信しました";
   const list = document.createElement("ol");
-  rankEntries(rankings).forEach((rankedEntry, index) => {
+  rankEntries(rankings).forEach((rankedEntry) => {
     const item = document.createElement("li");
     const comment = rankedEntry.comment ? `「${rankedEntry.comment}」` : "";
-    item.textContent = `${index + 1}. ${rankedEntry.name} - ${rankedEntry.stages} stages / ${rankedEntry.score} ${comment}`;
+    item.textContent = `${rankedEntry.name} - ${rankedEntry.stages} stages / ${rankedEntry.score} ${comment}`;
     list.append(item);
   });
   wrapper.append(title, list);
@@ -3130,10 +3130,10 @@ function renderRankings(rankings) {
     rankingListEl.append(item);
     return;
   }
-  rankings.forEach((entry, index) => {
+  rankings.forEach((entry) => {
     const item = document.createElement("li");
     const comment = entry.comment ? `「${entry.comment}」` : "";
-    item.textContent = `${index + 1}. ${entry.name} - ${entry.stages} stages / ${entry.score} ${comment}`;
+    item.textContent = `${entry.name} - ${entry.stages} stages / ${entry.score} ${comment}`;
     rankingListEl.append(item);
   });
 }
