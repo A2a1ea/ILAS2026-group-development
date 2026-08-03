@@ -12,6 +12,9 @@ const wordsFile = join(root, "data", "words-ja.json");
 const wordUpgradeSheetFile = join(root, "data", "word-upgrades.csv");
 const rankingLimit = 10;
 const rankingCommentLimit = 24;
+const supabaseUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseRankingTable = process.env.SUPABASE_RANKING_TABLE || "rankings";
 const kuromoji = require("kuromoji");
 const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")), "dict");
 const conversionForms = new Map([
@@ -34,7 +37,11 @@ const mimeTypes = {
 const server = createServer((request, response) => {
   const url = new URL(request.url || "/", `http://${request.headers.host || "127.0.0.1"}`);
   if (url.pathname === "/api/rankings/stages") {
-    handleRankings(request, response);
+    handleRankings(request, response).catch((error) => {
+      console.error("Ranking API error:", error);
+      response.writeHead(500);
+      response.end("Ranking API error");
+    });
     return;
   }
   if (url.pathname === "/api/words/validate") {
@@ -98,9 +105,9 @@ function resolvePath(pathname) {
   return filePath === root || filePath.startsWith(root + sep) ? filePath : null;
 }
 
-function handleRankings(request, response) {
+async function handleRankings(request, response) {
   if (request.method === "GET") {
-    sendJson(response, readRankings());
+    sendJson(response, await readSharedRankings());
     return;
   }
 
@@ -110,26 +117,32 @@ function handleRankings(request, response) {
     return;
   }
 
-  let body = "";
-  request.on("data", (chunk) => {
-    body += chunk;
-    if (body.length > 4096) request.destroy();
-  });
-  request.on("end", () => {
-    try {
-      const entry = sanitizeRanking(JSON.parse(body));
-      if (!entry) {
-        response.writeHead(400);
-        response.end("Invalid ranking entry");
-        return;
-      }
-      const rankings = rankEntries([...readRankings(), entry]).slice(0, rankingLimit);
-      writeRankings(rankings);
-      sendJson(response, rankings);
-    } catch {
+  try {
+    const entry = sanitizeRanking(JSON.parse(await readRequestBody(request, 4096)));
+    if (!entry) {
       response.writeHead(400);
-      response.end("Invalid JSON");
+      response.end("Invalid ranking entry");
+      return;
     }
+    sendJson(response, await addSharedRanking(entry));
+  } catch {
+    response.writeHead(400);
+    response.end("Invalid JSON");
+  }
+}
+
+function readRequestBody(request, limit) {
+  return new Promise((resolveBody, rejectBody) => {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > limit) {
+        request.destroy();
+        rejectBody(new Error("Request body too large"));
+      }
+    });
+    request.on("end", () => resolveBody(body));
+    request.on("error", rejectBody);
   });
 }
 
@@ -163,6 +176,100 @@ function sanitizeRankingComment(comment, usedLetters) {
     .filter((char) => allowed.has(char))
     .join("")
     .slice(0, rankingCommentLimit);
+}
+
+async function readSharedRankings() {
+  if (hasSupabaseRankingConfig()) {
+    try {
+      return await fetchSupabaseRankings();
+    } catch (error) {
+      console.warn("Supabase ranking GET failed; falling back to local rankings.", error.message);
+    }
+  }
+  return readRankings();
+}
+
+async function addSharedRanking(entry) {
+  if (hasSupabaseRankingConfig()) {
+    try {
+      const response = await fetch(supabaseRankingEndpoint(), {
+        method: "POST",
+        headers: supabaseHeaders({ preferRepresentation: true }),
+        body: JSON.stringify(toSupabaseRanking(entry)),
+      });
+      if (!response.ok) throw new Error(`POST ${response.status}`);
+      const posted = await parseSupabaseRankings(response);
+      if (posted.length) return posted;
+      return await fetchSupabaseRankings();
+    } catch (error) {
+      console.warn("Supabase ranking POST failed; falling back to local rankings.", error.message);
+    }
+  }
+  const rankings = rankEntries([...readRankings(), entry]).slice(0, rankingLimit);
+  writeRankings(rankings);
+  return rankings;
+}
+
+async function fetchSupabaseRankings() {
+  const response = await fetch(`${supabaseRankingEndpoint()}?select=*&order=stages.desc,score.desc,created_at.desc&limit=${rankingLimit}`, {
+    headers: supabaseHeaders(),
+  });
+  if (!response.ok) throw new Error(`GET ${response.status}`);
+  return parseSupabaseRankings(response);
+}
+
+function hasSupabaseRankingConfig() {
+  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+}
+
+function supabaseRankingEndpoint() {
+  return `${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseRankingTable)}`;
+}
+
+function supabaseHeaders({ preferRepresentation = false } = {}) {
+  const headers = {
+    Accept: "application/json",
+    apikey: supabaseServiceRoleKey,
+    Authorization: `Bearer ${supabaseServiceRoleKey}`,
+  };
+  if (preferRepresentation) {
+    headers["Content-Type"] = "application/json";
+    headers.Prefer = "return=representation";
+  }
+  return headers;
+}
+
+async function parseSupabaseRankings(response) {
+  const data = await response.json();
+  const entries = Array.isArray(data) ? data : [];
+  return rankEntries(entries.map(sanitizeStoredRanking).filter(Boolean));
+}
+
+function toSupabaseRanking(entry) {
+  return {
+    name: entry.name,
+    stages: entry.stages,
+    score: entry.score,
+    used_letters: entry.usedLetters,
+    comment: entry.comment,
+    created_at: entry.date,
+  };
+}
+
+function sanitizeStoredRanking(entry) {
+  const name = String(entry?.name || "Player").replace(/[^\w -]/g, "").trim().slice(0, 18) || "Player";
+  const stages = Math.floor(Number(entry?.stages));
+  const score = Math.floor(Number(entry?.score));
+  if (!Number.isFinite(stages) || stages < 1 || !Number.isFinite(score) || score < 0) return null;
+  const usedLetters = sanitizeUsedLetters(entry?.usedLetters || entry?.used_letters);
+  return {
+    name,
+    stages,
+    score,
+    usedLetters,
+    comment: sanitizeRankingComment(entry?.comment, usedLetters),
+    date: String(entry?.date || entry?.created_at || new Date().toISOString()),
+  };
 }
 
 function readRankings() {

@@ -1,14 +1,26 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 
 const port = 5187;
+const supabasePort = 5188;
 const rankingFile = ".logs/rankings.json";
 const originalRankingFile = existsSync(rankingFile) ? readFileSync(rankingFile, "utf8") : null;
+const supabaseRankingState = [];
+let supabaseRankingPostCount = 0;
+const supabaseServer = createSupabaseServer();
 const server = spawn(process.execPath, ["tools/dev-server.mjs", "--port", String(port)], {
   stdio: ["ignore", "pipe", "pipe"],
+  env: {
+    ...process.env,
+    SUPABASE_URL: `http://127.0.0.1:${supabasePort}`,
+    SUPABASE_SERVICE_ROLE_KEY: "smoke-supabase-key",
+    SUPABASE_RANKING_TABLE: "rankings",
+  },
 });
 
 try {
+  await listen(supabaseServer, supabasePort);
   await waitForServer(port);
   const html = await (await fetch(`http://127.0.0.1:${port}/`)).text();
   const js = await (await fetch(`http://127.0.0.1:${port}/script.js`)).text();
@@ -201,6 +213,9 @@ try {
   assert(devServerJs.includes("word-upgrades.csv"), "dev server should load code-free word upgrades from CSV");
   assert(devServerJs.includes("sanitizeRankingComment"), "dev server should sanitize ranking comments");
   assert(devServerJs.includes("sanitizeUsedLetters"), "dev server should store allowed ranking comment letters");
+  assert(devServerJs.includes("SUPABASE_URL"), "dev server should support Supabase ranking storage");
+  assert(devServerJs.includes("fetchSupabaseRankings"), "dev server should fetch rankings from Supabase");
+  assert(devServerJs.includes("used_letters"), "dev server should map used letters to a Supabase json column");
   assert(devServerJs.includes("function readWordUpgradeSheet"), "dev server should parse the editable word upgrade sheet");
   assert(devServerJs.includes("function parseCsv"), "dev server should parse spreadsheet CSV exports");
   assert(devServerJs.includes("fetchKuromojiWordEntry"), "dev server should validate words through the morphological dictionary");
@@ -243,6 +258,7 @@ try {
   assert(rankingPostResult.some((entry) => entry.comment === "\u307b\u306e\u304a"), "ranking API should keep comments to used upgrade letters only");
   assert(duplicateNameRankingPost.ok, "ranking API should accept repeated player names");
   assert(duplicateNameRankingPostResult.filter((entry) => entry.name === smokeRankName).length === 2, "ranking API should keep separate runs for the same player name");
+  assert(supabaseRankingPostCount === 2, "ranking API should forward posted scores to Supabase");
   assert(localWord.ok && localWordResult.valid, "word validation API should validate local Japanese words");
   assert(dictionaryWord.ok && dictionaryWordResult.valid && dictionaryWordResult.source === "kuromoji", "word validation API should accept one-token dictionary words");
   assert(compoundDictionaryWord.ok && compoundDictionaryWordResult.valid && compoundDictionaryWordResult.source === "kuromoji", "word validation API should accept 3+ character compound dictionary words");
@@ -259,11 +275,62 @@ try {
   console.log("Smoke test passed.");
 } finally {
   server.kill();
+  await closeServer(supabaseServer);
   if (originalRankingFile == null) {
     rmSync(rankingFile, { force: true });
   } else {
     writeFileSync(rankingFile, originalRankingFile);
   }
+}
+
+function createSupabaseServer() {
+  return createServer((request, response) => {
+    const url = new URL(request.url || "/", "http://127.0.0.1");
+    if (url.pathname !== "/rest/v1/rankings") {
+      response.writeHead(404);
+      response.end("Not found");
+      return;
+    }
+    if (request.headers.authorization !== "Bearer smoke-supabase-key" || request.headers.apikey !== "smoke-supabase-key") {
+      response.writeHead(401);
+      response.end("Unauthorized");
+      return;
+    }
+    if (request.method === "GET") {
+      sendSupabaseJson(response, supabaseRankingState);
+      return;
+    }
+    if (request.method === "POST") {
+      let body = "";
+      request.on("data", (chunk) => {
+        body += chunk;
+      });
+      request.on("end", () => {
+        supabaseRankingPostCount += 1;
+        supabaseRankingState.push(JSON.parse(body));
+        sendSupabaseJson(response, supabaseRankingState);
+      });
+      return;
+    }
+    response.writeHead(405);
+    response.end("Method not allowed");
+  });
+}
+
+function sendSupabaseJson(response, data) {
+  response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify(data));
+}
+
+function listen(serverToListen, targetPort) {
+  return new Promise((resolve, reject) => {
+    serverToListen.once("error", reject);
+    serverToListen.listen(targetPort, "127.0.0.1", resolve);
+  });
+}
+
+function closeServer(serverToClose) {
+  return new Promise((resolve) => serverToClose.close(() => resolve()));
 }
 
 async function waitForServer(targetPort) {
