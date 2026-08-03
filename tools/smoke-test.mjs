@@ -106,6 +106,7 @@ try {
   assert(js.includes("Prism Gate"), "script.js should include a beam and safe-zone boss");
   assert(js.includes("Iron Comet"), "script.js should include a boomerang boss");
   assert(js.includes("Mirage Needle"), "script.js should include a teleport boss");
+  assert(js.includes("Echo Seed"), "script.js should include a splitting bounce boss");
   assert(js.includes("function selectBossDesign"), "script.js should rotate boss designs");
   assert(js.includes("function bossAttributeMultiplier"), "script.js should apply boss weakness and resistance");
   assert(js.includes('bullet.attribute === "pattern"'), "dark shots should hit every boss weakness");
@@ -113,6 +114,10 @@ try {
   assert(js.includes("function queueBossBeam"), "script.js should include telegraphed boss beams");
   assert(js.includes("function queueSafeZone"), "script.js should include safe-zone boss attacks");
   assert(js.includes('motion = "boomerang"'), "script.js should include returning boomerang bullets");
+  assert(js.includes('motion = "pause-aim"'), "script.js should include stop-and-aim bullets");
+  assert(js.includes("function firePauseAimFan"), "script.js should give Iron Comet stop-and-aim spreads");
+  assert(js.includes('motion = "split-bounce"'), "script.js should include splitting bounce bullets");
+  assert(js.includes("function fireSplitBounceSeed"), "script.js should give Echo Seed a one-shot splitting attack");
   assert(js.includes("function teleportBoss"), "script.js should include boss teleport movement");
   assert(js.includes("function startMirageSpecial"), "script.js should include Mirage Needle's charged special sequence");
   assert(js.includes("function updateMirageSpecial"), "script.js should step Mirage Needle through its teleport special");
@@ -124,6 +129,7 @@ try {
   assert(js.includes("function drawPrismBoss"), "script.js should draw a unique prism boss");
   assert(js.includes("function drawCometBoss"), "script.js should draw a unique comet boss");
   assert(js.includes("function drawMirageBoss"), "script.js should draw a unique mirage boss");
+  assert(js.includes("function drawEchoBoss"), "script.js should draw a unique echo boss");
   assert(js.includes("enterUpgrade();"), "boss defeat should return to the upgrade board");
   assert(js.includes("collect more letters"), "non-boss phases should keep collecting letters");
   assert(js.includes("function enterUpgrade"), "script.js should include upgrade selection between phases");

@@ -139,6 +139,15 @@ const BOSS_DESIGNS = [
     accent: "#c99cff",
     message: "Mirage Needle: 風で瞬間移動を追え",
   },
+  {
+    id: "echo",
+    name: "Echo Seed",
+    weak: "control",
+    resist: "attack",
+    color: "#ffcf6f",
+    accent: "#baf6ff",
+    message: "Echo Seed: 氷で跳ね返る増殖弾を冷ませ",
+  },
 ];
 const LOCAL_WORDS = new Set([
   "あい", "あお", "あか", "あき", "あさ", "あし", "あめ", "いえ", "いし", "いぬ", "いろ", "うみ", "えき", "おに", "おと", "かい", "かお", "かき", "かさ", "かぜ", "かに", "かめ", "くさ", "くも", "こえ", "こめ", "さけ", "さる", "しか", "しお", "すし", "そら", "たき", "たこ", "たね", "つき", "つち", "てき", "とり", "なみ", "にじ", "ねこ", "はな", "はね", "ひかり", "ひと", "ほし", "まめ", "みず", "もり", "ゆき", "よる", "りす",
@@ -635,15 +644,15 @@ function fireBossPattern(boss, density) {
   }
 
   if (boss.design.id === "comet") {
-    if (boss.phase === 0) fireBoomerangFan(boss.x, boss.y + 26, 7 + density, 0.82, 180 + density * 7, boss.design.color);
+    if (boss.phase === 0) firePauseAimFan(boss.x, boss.y + 26, 7 + density, 0.82, 180 + density * 7, 224 + density * 8, boss.design.color);
     if (boss.phase === 1) {
       fireFan(boss.x, boss.y + 28, Math.PI / 2, 9 + density, 0.74, 205 + density * 8, boss.design.accent);
-      fireBoomerang(boss.x - 46, boss.y + 18, -35, 190 + density * 10, 8, boss.design.color);
-      fireBoomerang(boss.x + 46, boss.y + 18, 35, 190 + density * 10, 8, boss.design.color);
+      firePauseAim(boss.x - 46, boss.y + 18, -35, 190 + density * 10, 238 + density * 8, 8, boss.design.color);
+      firePauseAim(boss.x + 46, boss.y + 18, 35, 190 + density * 10, 238 + density * 8, 8, boss.design.color);
     }
     if (boss.phase === 2) fireCircle(boss.x, boss.y + 10, 15 + density * 2, 118 + density * 6, boss.design.accent, -boss.entry * 0.7);
     if (boss.phase === 3) {
-      fireBoomerangFan(boss.x, boss.y + 22, 11 + density * 2, 1.15, 218 + density * 8, boss.design.color);
+      firePauseAimFan(boss.x, boss.y + 22, 11 + density * 2, 1.15, 218 + density * 8, 250 + density * 8, boss.design.color);
       queueSafeZone(WIDTH / 2 + Math.sin(boss.entry) * 130, 140, 0.72, 0.42, boss.design.accent);
     }
     return;
@@ -653,6 +662,14 @@ function fireBossPattern(boss, density) {
     boss.mirageCycle = ((boss.mirageCycle || 0) + 1) % 4;
     if (boss.mirageCycle === 0 || boss.phase === 3) startMirageSpecial(boss);
     else fireMirageNormalAttack(boss, density);
+    return;
+  }
+
+  if (boss.design.id === "echo") {
+    if (!boss.echoSeedFired) {
+      boss.echoSeedFired = true;
+      fireSplitBounceSeed(boss, density);
+    }
     return;
   }
 
@@ -712,6 +729,43 @@ function fireBoomerangFan(x, y, count, spread, speed, color) {
     const angle = start + (spread * i) / Math.max(1, count - 1);
     fireBoomerang(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 7, color);
   }
+}
+
+function firePauseAim(x, y, vx, vy, aimSpeed, radius, color) {
+  const bullet = fireBullet(x, y, vx, vy, radius, color);
+  bullet.motion = "pause-aim";
+  bullet.age = 0;
+  bullet.pauseAt = 0.42 + Math.random() * 0.16;
+  bullet.pauseFor = 0.42;
+  bullet.aimSpeed = aimSpeed;
+  bullet.originalVx = vx;
+  bullet.originalVy = vy;
+  return bullet;
+}
+
+function firePauseAimFan(x, y, count, spread, speed, aimSpeed, color) {
+  const start = Math.PI / 2 - spread / 2;
+  for (let i = 0; i < count; i += 1) {
+    const angle = start + (spread * i) / Math.max(1, count - 1);
+    firePauseAim(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, aimSpeed, 7, color);
+  }
+}
+
+function fireSplitBounceSeed(boss, density) {
+  const angle = Math.atan2(game.player.y - boss.y, game.player.x - boss.x) + Math.sin(boss.entry) * 0.42;
+  const speed = 174 + density * 9;
+  fireSplitBounce(boss.x, boss.y + 22, Math.cos(angle) * speed, Math.sin(angle) * speed, 8, boss.design.color, boss.design.accent, 0);
+}
+
+function fireSplitBounce(x, y, vx, vy, radius, color, accent, splitLevel) {
+  const bullet = fireBullet(x, y, vx, vy, radius, color);
+  bullet.motion = "split-bounce";
+  bullet.splitLevel = splitLevel;
+  bullet.bouncesLeft = Math.max(0, 3 - splitLevel);
+  bullet.accent = accent;
+  bullet.age = 0;
+  bullet.grace = 0.08;
+  return bullet;
 }
 
 function fireFlowerPattern(x, y, density, color, accent) {
@@ -784,8 +838,10 @@ function updateEnemyBullets(dt) {
   const slowScale = enemySlowScale() * inventoryBulletPressure();
   for (const b of game.enemyBullets) {
     if (b.motion === "boomerang") updateBoomerangBullet(b, dt * slowScale);
+    if (b.motion === "pause-aim") updatePauseAimBullet(b, dt * slowScale);
     b.x += b.vx * dt * slowScale;
     b.y += b.vy * dt * slowScale;
+    if (b.motion === "split-bounce") updateSplitBounceBullet(b, dt * slowScale);
   }
   game.enemyBullets = game.enemyBullets.filter((b) => b.x > -40 && b.x < WIDTH + 40 && b.y > -50 && b.y < HEIGHT + 50);
 }
@@ -798,6 +854,67 @@ function updateBoomerangBullet(b, dt) {
     b.vy = -Math.abs(b.vy) * 0.86;
     b.radius = (b.originalRadius || b.radius) + 2;
   }
+}
+
+function updatePauseAimBullet(b, dt) {
+  b.age = (b.age || 0) + dt;
+  if (!b.paused && b.age >= b.pauseAt) {
+    b.paused = true;
+    b.pauseAge = 0;
+    b.vx = 0;
+    b.vy = 0;
+  }
+  if (b.paused && !b.aimed) {
+    b.pauseAge += dt;
+    if (b.pauseAge >= b.pauseFor) {
+      b.aimed = true;
+      const angle = Math.atan2(game.player.y - b.y, game.player.x - b.x);
+      b.vx = Math.cos(angle) * b.aimSpeed;
+      b.vy = Math.sin(angle) * b.aimSpeed;
+      b.radius += 1;
+    }
+  }
+}
+
+function updateSplitBounceBullet(b, dt) {
+  b.age = (b.age || 0) + dt;
+  b.grace = Math.max(0, (b.grace || 0) - dt);
+  if (b.grace > 0 || b.bouncesLeft <= 0) return;
+
+  let bounced = false;
+  if (b.x < b.radius + 18) {
+    b.x = b.radius + 18;
+    b.vx = Math.abs(b.vx);
+    bounced = true;
+  } else if (b.x > WIDTH - b.radius - 18) {
+    b.x = WIDTH - b.radius - 18;
+    b.vx = -Math.abs(b.vx);
+    bounced = true;
+  }
+  if (b.y < b.radius + 68) {
+    b.y = b.radius + 68;
+    b.vy = Math.abs(b.vy);
+    bounced = true;
+  } else if (b.y > HEIGHT - b.radius - 58) {
+    b.y = HEIGHT - b.radius - 58;
+    b.vy = -Math.abs(b.vy);
+    bounced = true;
+  }
+
+  if (!bounced) return;
+  b.bouncesLeft -= 1;
+  b.grace = 0.12;
+  b.color = b.accent || b.color;
+  spawnSplitBounceChild(b);
+}
+
+function spawnSplitBounceChild(parent) {
+  if ((parent.splitLevel || 0) >= 3 || game.enemyBullets.length > 88) return;
+  const baseAngle = Math.atan2(parent.vy, parent.vx);
+  const angle = baseAngle + (Math.random() < 0.5 ? -0.62 : 0.62);
+  const speed = Math.hypot(parent.vx, parent.vy) * 0.94;
+  const child = fireSplitBounce(parent.x, parent.y, Math.cos(angle) * speed, Math.sin(angle) * speed, Math.max(5, parent.radius - 1), parent.accent || parent.color, parent.color, (parent.splitLevel || 0) + 1);
+  child.grace = 0.16;
 }
 
 function queueBossBeam(x, width, delay, duration, color) {
@@ -1781,7 +1898,7 @@ function startFinalBattle() {
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
   game.bossWarnings.length = 0;
-  const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
+  const maxHp = Math.round((420 + game.phase * 70 + game.upgrades.length * 90) * 3);
   const design = debugBossDesign() || selectBossDesign(game.phase);
   game.boss = {
     x: WIDTH / 2,
@@ -2152,6 +2269,7 @@ function drawBoss() {
   else if (b.design.id === "prism") drawPrismBoss(b);
   else if (b.design.id === "comet") drawCometBoss(b);
   else if (b.design.id === "mirage") drawMirageBoss(b);
+  else if (b.design.id === "echo") drawEchoBoss(b);
   else drawVioletBoss(b);
   if (b.teleportFlash > 0) {
     ctx.globalAlpha = Math.min(1, b.teleportFlash * 3);
@@ -2276,6 +2394,26 @@ function drawMirageBoss(b) {
   ctx.fill();
 }
 
+function drawEchoBoss(b) {
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0, 0, b.radius * 0.82, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  for (let i = 0; i < 4; i += 1) {
+    ctx.strokeStyle = i % 2 ? b.design.accent : "rgba(7, 17, 32, 0.62)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, b.radius * (0.28 + i * 0.15) + Math.sin(game.time * 3 + i) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = b.design.accent;
+  ctx.beginPath();
+  ctx.arc(0, 0, b.radius * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawVioletBoss(b) {
   ctx.beginPath();
   ctx.moveTo(0, -b.radius);
@@ -2318,6 +2456,20 @@ function drawEnemyBullets() {
     if (b.motion === "boomerang") {
       ctx.strokeStyle = b.returning ? "rgba(238, 248, 255, 0.86)" : "rgba(7, 17, 32, 0.48)";
       ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    if (b.motion === "pause-aim") {
+      ctx.strokeStyle = b.aimed ? "rgba(238, 248, 255, 0.9)" : "rgba(214, 255, 143, 0.72)";
+      ctx.lineWidth = b.paused && !b.aimed ? 3 : 1.5;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius + (b.paused && !b.aimed ? 5 : 2), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (b.motion === "split-bounce") {
+      ctx.strokeStyle = b.accent || "rgba(186, 246, 255, 0.8)";
+      ctx.lineWidth = 1.5 + (b.splitLevel || 0) * 0.4;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius + 4 + (b.splitLevel || 0) * 2, 0, Math.PI * 2);
       ctx.stroke();
     }
   }
