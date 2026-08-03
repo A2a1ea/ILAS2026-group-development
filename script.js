@@ -28,8 +28,10 @@ const RANKING_ENDPOINT = "/api/rankings/stages";
 const WORD_ENDPOINT = "/api/words/validate";
 const LETTER_POOL = "あああいいいううええおおかかききくくけこさしすすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん";
 const REWARD_LETTERS = ["ね", "こ", "そ", "ら", "は", "な", "み", "ず", "ほ", "し", "あ", "め", "か", "ぜ", "つ", "き", "ま", "も", "り"];
-const BOARD_COLS = 7;
-const BOARD_ROWS = 5;
+const INVENTORY_LIMIT = 8;
+const UPGRADE_TILE_LIMIT = 3;
+const BOARD_COLS = 3;
+const BOARD_ROWS = 1;
 const BOARD_SIZE = BOARD_COLS * BOARD_ROWS;
 const WORD_EFFECTS = [
   { word: "fast", label: "Fast", target: "self", duration: 8 },
@@ -157,7 +159,7 @@ function createGame(mode = "title") {
       pendingUpgrades: [],
       choiceOptions: [],
       choosing: false,
-      message: "Choose any square for your first letter.",
+      message: "Place up to three letters. Make one compact word.",
       busy: false,
     },
     upgrades: [],
@@ -514,15 +516,15 @@ function enemySlowScale() {
 }
 
 function inventoryRisk() {
-  return Math.max(0, game.inventory.length - 8);
+  return Math.max(0, game.inventory.length - 4);
 }
 
 function inventoryMoveScale() {
-  return Math.max(0.72, 1 - inventoryRisk() * 0.018);
+  return Math.max(0.66, 1 - inventoryRisk() * 0.045);
 }
 
 function inventoryBulletPressure() {
-  return 1 + Math.max(0, game.inventory.length - 14) * 0.018 + (game.riskBulletPressure || 0);
+  return 1 + inventoryRisk() * 0.055 + (game.riskBulletPressure || 0);
 }
 
 function stageDensityScale() {
@@ -552,14 +554,18 @@ function updateLetters(dt) {
 
 function collectLetter(letter) {
   if (!["phase", "final"].includes(game.mode)) return;
+  if (game.inventory.length >= INVENTORY_LIMIT) {
+    game.riskBulletPressure = (game.riskBulletPressure || 0) + 0.04;
+    game.score += 5;
+    burst(letter.x, letter.y, "#ff6b9a", 10);
+    setMessage(`Rack full (${INVENTORY_LIMIT}). Fire K/X to make space.`);
+    return;
+  }
   game.inventory.push(letter.char);
-  if (game.inventory.length > 24) game.inventory.shift();
   game.score += 25;
   burst(letter.x, letter.y, "#d6ff8f", 8);
-  if (game.inventory.length === 9) setMessage("文字が重くなってきた。Kで捨てられる。");
-  if (game.inventory.length === 15) setMessage("持ちすぎで敵弾が速くなる。");
+  if (game.inventory.length === INVENTORY_LIMIT) setMessage("Rack full. Choose letters carefully.");
 }
-
 function fireStoredLetter() {
   if (!["phase", "final"].includes(game.mode)) return;
   const item = game.inventory.pop();
@@ -663,7 +669,7 @@ function enterUpgrade() {
     pendingUpgrades: [],
     choiceOptions: [],
     choosing: false,
-    message: "Choose any square for your first letter.",
+    message: "Place up to three letters. Make one compact word.",
     busy: false,
   };
   showUpgradeOverlay();
@@ -673,7 +679,7 @@ function enterUpgrade() {
 function showUpgradeOverlay() {
   overlay.hidden = false;
   overlay.querySelector("h1").textContent = `Upgrade ${game.phase}`;
-  overlay.querySelector("p").textContent = "Place one letter at a time. Words made by that move become upgrades.";
+  overlay.querySelector("p").textContent = "Place up to three letters. A short word becomes one upgrade choice.";
   startButton.textContent = "Confirm Words";
   renderUpgradeBoard();
 }
@@ -689,7 +695,7 @@ function renderUpgradeBoard() {
   summary.className = "word-slots";
   summary.textContent = game.upgradeBoard.foundWords.length
     ? game.upgradeBoard.foundWords.map((item) => item.word.toUpperCase()).join(" / ")
-    : "MAKE WORDS";
+    : "3 LETTERS";
   panel.append(summary);
 
   const grid = document.createElement("span");
@@ -725,7 +731,7 @@ function renderUpgradeBoard() {
         if (game.upgradeBoard.activeCellIndex == null) {
           game.upgradeBoard.activeIndex = game.upgradeBoard.activeIndex === index ? null : index;
           game.upgradeBoard.message = game.upgradeBoard.activeIndex == null
-            ? "Choose any square for your first letter."
+            ? "Place up to three letters. Make one compact word."
             : "Now choose any + square.";
           renderUpgradeBoard();
           return;
@@ -737,7 +743,7 @@ function renderUpgradeBoard() {
   } else {
     const empty = document.createElement("span");
     empty.className = "board-note";
-    empty.textContent = "No letters collected. Forge will create a weak WILD upgrade.";
+    empty.textContent = "No letters collected. Confirm creates a weak WILD upgrade.";
     rack.append(empty);
   }
   panel.append(rack);
@@ -770,7 +776,7 @@ function renderUpgradeBoard() {
     game.upgradeBoard.pendingUpgrades = [];
     game.upgradeBoard.choiceOptions = [];
     game.upgradeBoard.choosing = false;
-    game.upgradeBoard.message = "Choose any square for your first letter.";
+    game.upgradeBoard.message = "Place up to three letters. Make one compact word.";
     renderUpgradeBoard();
   });
   actions.append(undo, clear);
@@ -903,6 +909,7 @@ async function placeLetterAt(cellIndex, sourceIndex) {
 
 function canPlaceAt(index) {
   if (game.upgradeBoard.cells[index]) return false;
+  if (getPlacedCells().length >= UPGRADE_TILE_LIMIT) return false;
   if (!getPlacedCells().length) return true;
   return neighborIndices(index).some((neighbor) => game.upgradeBoard.cells[neighbor]);
 }
@@ -1415,12 +1422,11 @@ function rewardLetterShield(enemy) {
     game.inventory.push(makePoweredLetter(char));
     gained.push(char);
   }
-  while (game.inventory.length > 24) game.inventory.shift();
+  while (game.inventory.length > INVENTORY_LIMIT) game.inventory.shift();
   game.score += 180 * count;
-  setMessage(`文字シールド撃破: 色付き ${gained.join(" ")} を獲得。`);
+  setMessage(`Letter shield broken: powered letters ${gained.join(" ")} gained.`);
   burst(enemy.x, enemy.y, "#eef8ff", 10);
 }
-
 function damagePlayer() {
   const p = game.player;
   p.hp -= 1;
@@ -1788,7 +1794,7 @@ function updateHud() {
   const risk = inventoryRisk();
   const riskText = risk > 6 ? "危険" : risk > 0 ? "重い" : "余裕";
   letterRackEl.textContent = game.inventory.length
-    ? `${game.inventory.map(inventoryLabel).join(" ")} (${game.inventory.length}/24 ${riskText})`
+    ? `${game.inventory.map(inventoryLabel).join(" ")} (${game.inventory.length}/${INVENTORY_LIMIT} ${riskText})`
     : "collect letters";
   const activeEffects = Object.entries(game.effects)
     .filter(([, time]) => time > 0)

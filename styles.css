@@ -282,11 +282,11 @@ select:focus-visible {
 
 .tile-board {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr;
   gap: 0;
-  width: min(100%, 22rem);
-  aspect-ratio: 7 / 5;
+  width: min(100%, 14rem);
+  aspect-ratio: 3 / 1;
   margin: 0 auto;
   padding: 0;
   border: 3px solid rgba(52, 74, 71, 0.86);

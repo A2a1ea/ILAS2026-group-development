@@ -89,6 +89,10 @@ try {
   assert(js.includes("function scoreMoveAt"), "script.js should score words immediately after each placed tile");
   assert(js.includes("function getWordsThroughCell"), "script.js should inspect words through the latest tile");
   assert(js.includes("function canPlaceAt"), "script.js should enforce adjacent tile placement");
+  assert(js.includes("INVENTORY_LIMIT = 8"), "script.js should strictly cap held letters at eight");
+  assert(js.includes("UPGRADE_TILE_LIMIT = 3"), "script.js should limit upgrade boards to three placed letters");
+  assert(js.includes("BOARD_COLS = 3"), "script.js should use a three-letter board");
+  assert(js.includes("Rack full"), "script.js should warn when the letter rack is full");
   assert(js.includes("function inventoryRisk"), "script.js should add risk for hoarding letters");
   assert(js.includes("function inventoryMoveScale"), "script.js should slow movement when carrying too many letters");
   assert(js.includes("function boardCellZone"), "script.js should assign visual zones to board cells");
@@ -134,6 +138,8 @@ try {
   assert(css.includes(".upgrade-choices"), "styles.css should include upgrade choice card layout");
   assert(css.includes(".upgrade-card"), "styles.css should style upgrade choice cards");
   assert(css.includes(".tile-board"), "styles.css should include the rectangular word board grid");
+  assert(css.includes("repeat(3, 1fr)"), "styles.css should render the upgrade board as three slots");
+  assert(css.includes("aspect-ratio: 3 / 1"), "styles.css should size the board as a three-letter strip");
   assert(css.includes(".tile-cell.zone-core"), "styles.css should include connected board color zones");
   assert(css.includes(".tile-cell.scored"), "styles.css should highlight scored word tiles");
   assert(css.includes(".letter-tile.powered"), "styles.css should style colored reward letters");
