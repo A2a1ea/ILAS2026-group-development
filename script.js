@@ -2242,38 +2242,62 @@ function buildRankingEntry() {
 function renderRankingCommentForm(entry) {
   const hint = overlay.querySelector(".hint");
   const allowedLetters = uniqueLetters(entry.usedLetters);
+  let comment = "";
   hint.innerHTML = "";
   const form = document.createElement("form");
   form.className = "ranking-comment-form";
-  const label = document.createElement("label");
-  label.textContent = "ランキングコメント";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.maxLength = RANKING_COMMENT_LIMIT;
-  input.placeholder = allowedLetters.join("");
-  input.autocomplete = "off";
-  input.inputMode = "text";
-  input.addEventListener("focus", () => keys.clear());
+  const title = document.createElement("strong");
+  title.textContent = "ランキングコメント";
+  const output = document.createElement("span");
+  output.className = "ranking-comment-output";
+  output.textContent = "文字を選んでください";
+  const bank = document.createElement("span");
+  bank.className = "ranking-comment-bank";
+  allowedLetters.forEach((char) => {
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "ranking-comment-tile";
+    tile.textContent = char;
+    tile.addEventListener("click", () => {
+      if (comment.length >= RANKING_COMMENT_LIMIT) return;
+      comment = sanitizeRankingComment(`${comment}${char}`, allowedLetters);
+      output.textContent = comment || "文字を選んでください";
+    });
+    bank.append(tile);
+  });
   const note = document.createElement("span");
   note.className = "ranking-comment-note";
   note.textContent = `使える文字: ${allowedLetters.join(" ")}`;
+  const actions = document.createElement("span");
+  actions.className = "ranking-comment-actions";
+  const undo = document.createElement("button");
+  undo.type = "button";
+  undo.textContent = "1文字戻す";
+  undo.addEventListener("click", () => {
+    comment = comment.slice(0, -1);
+    output.textContent = comment || "文字を選んでください";
+  });
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.textContent = "消す";
+  clear.addEventListener("click", () => {
+    comment = "";
+    output.textContent = "文字を選んでください";
+  });
   const submit = document.createElement("button");
   submit.type = "submit";
   submit.textContent = "送信";
-  input.addEventListener("input", () => {
-    input.value = sanitizeRankingComment(input.value, allowedLetters);
-  });
+  actions.append(undo, clear, submit);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     submit.disabled = true;
-    entry.comment = sanitizeRankingComment(input.value, allowedLetters);
+    entry.comment = sanitizeRankingComment(comment, allowedLetters);
     const rankings = await submitRankingEntry(entry);
     renderRankingResult(hint, rankings, entry);
   });
-  label.append(input);
-  form.append(label, note, submit);
+  form.append(title, output, bank, note, actions);
   hint.append(form);
-  input.focus();
+  keys.clear();
 }
 
 async function submitRankingEntry(entry) {

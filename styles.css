@@ -153,15 +153,13 @@ body {
   justify-items: center;
 }
 
-.ranking-comment-form label {
-  display: grid;
-  gap: 6px;
+.ranking-comment-form strong {
   color: var(--text);
-  font-weight: 700;
 }
 
-.ranking-comment-form input {
-  width: min(17rem, 72vw);
+.ranking-comment-output {
+  min-width: min(17rem, 72vw);
+  min-height: 2.35rem;
   border: 1px solid rgba(174, 224, 255, 0.42);
   border-radius: 6px;
   background: rgba(7, 17, 32, 0.9);
@@ -169,6 +167,21 @@ body {
   padding: 8px 10px;
   text-align: center;
   font-size: 1rem;
+}
+
+.ranking-comment-bank,
+.ranking-comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ranking-comment-tile {
+  min-width: 2.2rem;
+  min-height: 2.2rem;
+  padding: 4px 8px;
+  border-color: rgba(174, 224, 255, 0.52);
 }
 
 .ranking-comment-note {

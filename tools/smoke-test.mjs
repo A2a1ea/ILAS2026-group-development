@@ -155,9 +155,9 @@ try {
   assert(js.includes("renderRankingCommentForm"), "script.js should show an in-game ranking comment form");
   assert(js.includes("renderRankingResult"), "script.js should show the top-ten ranking after comment submission");
   assert(js.includes("submitRankingEntry"), "script.js should submit ranking entries through the Web API");
+  assert(js.includes("ranking-comment-tile"), "script.js should build ranking comments from clickable letter tiles");
+  assert(js.includes("ranking-comment-output"), "script.js should show the assembled ranking comment without keyboard input");
   assert(js.includes("sanitizeRankingComment"), "script.js should restrict ranking comments to used upgrade letters");
-  assert(js.includes("function isTextEntryTarget"), "script.js should ignore game controls while typing ranking comments");
-  assert(js.includes("if (isTextEntryTarget(event.target)) return;"), "global key handlers should not intercept text inputs");
   assert(js.includes("\u30ea\u30b9\u30af\u5f37\u5316"), "script.js should include a risk-reward upgrade choice");
   assert(js.includes("\u30dc\u30b9\u5bfe\u7b56"), "script.js should include boss-counter upgrade choices");
   assert(js.includes("\u5927\u5f53\u305f\u308a\u899a\u9192"), "script.js should include readable high-roll upgrade choices");
@@ -222,6 +222,8 @@ try {
   assert(css.includes(".buff-icon"), "styles.css should include buff icon styles");
   assert(css.includes(".status-panel"), "styles.css should include letter and ranking panel styles");
   assert(css.includes(".ranking-comment-form"), "styles.css should style the game-over ranking comment form");
+  assert(css.includes(".ranking-comment-bank"), "styles.css should layout ranking comment letter tiles");
+  assert(css.includes(".ranking-comment-output"), "styles.css should style the assembled ranking comment");
   assert(css.includes(".ranking-result"), "styles.css should style the post-submit top-ten ranking");
   assert(css.includes(".debug-panel"), "styles.css should style the hidden debug panel");
   assert(css.includes(".word-board"), "styles.css should include the upgrade word board");
