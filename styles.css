@@ -99,6 +99,46 @@ body {
   line-height: 1.25;
 }
 
+.debug-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  border: 1px solid rgba(255, 107, 154, 0.4);
+  border-radius: 8px;
+  background: rgba(38, 9, 22, 0.86);
+  padding: 8px;
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.debug-panel[hidden] {
+  display: none;
+}
+
+.debug-panel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.debug-panel input[type="text"] {
+  width: 6rem;
+  border: 1px solid rgba(174, 224, 255, 0.34);
+  border-radius: 6px;
+  background: rgba(7, 17, 32, 0.88);
+  color: var(--text);
+  padding: 6px 8px;
+}
+
+.debug-panel button,
+.debug-panel select {
+  min-height: 2rem;
+  padding: 5px 9px;
+  font-size: 0.78rem;
+}
+
 .ranking ol {
   margin: 6px 0 0;
   padding-left: 1.35rem;
@@ -434,6 +474,10 @@ select:focus-visible {
 .letter-tile.active {
   outline: 3px solid var(--cyan);
   outline-offset: 2px;
+}
+
+.letter-tile.selected {
+  box-shadow: 0 0 0 3px rgba(255, 211, 110, 0.7), 0 0 18px rgba(255, 211, 110, 0.28);
 }
 
 .board-note {

@@ -1,0 +1,8 @@
+word,type,label,power,title,description,highRoll,source
+ほのお,attack,炎,8,炎上振れ ほのお,炎属性の大当たり。素直に弾威力を大きく伸ばす。,true,sheet
+はやて,mobility,風,8,風上振れ はやて,風属性の大当たり。速度と低速性能を大きく伸ばして避けやすくする。,true,sheet
+こおり,control,氷,8,氷上振れ こおり,氷属性の大当たり。敵弾スローと弾圧低下で盤面を軽くする。,true,sheet
+ひかり,life,光,8,光上振れ ひかり,光属性の大当たり。最大HPと回復で長期戦に強くなる。,true,sheet
+やみよ,pattern,闇,8,闇上振れ やみよ,闇属性の大当たり。作りにくい代わりに全ボスの弱点を突ける。,true,sheet
+かげ,pattern,闇,5,闇 かげ,闇属性。全ボス弱点を突けるが対応単語は少ない。,false,sheet
+やきにく,attack,攻撃,5,やきにく 攻撃,炎: 弾威力 +5。強化で重い火柱弾が増える。,false,sheet

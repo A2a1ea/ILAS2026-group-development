@@ -65,6 +65,23 @@
         </ol>
       </div>
     </section>
+    <section class="debug-panel" id="debugPanel" aria-label="Debug controls" hidden>
+      <label>
+        <input id="debugInvincible" type="checkbox">
+        Invincible
+      </label>
+      <label>
+        Letters
+        <input id="debugLetters" type="text" maxlength="8" placeholder="ほのお">
+      </label>
+      <button id="debugGrantLetters" type="button">Add</button>
+      <button id="debugSkipPhase" type="button">Skip</button>
+      <label>
+        Boss
+        <select id="debugBossSelect"></select>
+      </label>
+      <button id="debugStartBoss" type="button">Boss</button>
+    </section>
   </main>
 
   <script src="script.js"></script>

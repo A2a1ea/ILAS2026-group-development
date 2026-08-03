@@ -12,6 +12,13 @@ const overlay = document.querySelector("#overlay");
 const startButton = document.querySelector("#startButton");
 const keyPresetEl = document.querySelector("#keyPreset");
 const controlHintEl = document.querySelector("#controlHint");
+const debugPanelEl = document.querySelector("#debugPanel");
+const debugInvincibleEl = document.querySelector("#debugInvincible");
+const debugLettersEl = document.querySelector("#debugLetters");
+const debugGrantLettersEl = document.querySelector("#debugGrantLetters");
+const debugSkipPhaseEl = document.querySelector("#debugSkipPhase");
+const debugBossSelectEl = document.querySelector("#debugBossSelect");
+const debugStartBossEl = document.querySelector("#debugStartBoss");
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
@@ -41,7 +48,7 @@ const WORD_EFFECTS = [
 const KEY_PRESETS = {
   standard: {
     label: "WASD / J / K",
-    hint: "WASDで移動、Shiftで低速、Jでショット、Kで文字弾、Spaceで属性切り替え。",
+    hint: "WASDで移動、Shiftで低速、Jでショット、Hで文字選択、Kで選択文字弾、Spaceで属性切り替え。",
     keys: {
       a: "left",
       d: "right",
@@ -50,11 +57,12 @@ const KEY_PRESETS = {
       shift: "focus",
       j: "shoot",
       k: "letterShot",
+      h: "letterSelect",
     },
   },
   touhou: {
     label: "東方式 / 矢印 / Z / X",
-    hint: "矢印キーで移動、Shiftで低速、Zでショット、Xで文字弾、Spaceで属性切り替え。",
+    hint: "矢印キーで移動、Shiftで低速、Zでショット、Hで文字選択、Xで選択文字弾、Spaceで属性切り替え。",
     keys: {
       arrowleft: "left",
       arrowright: "right",
@@ -63,13 +71,16 @@ const KEY_PRESETS = {
       shift: "focus",
       z: "shoot",
       x: "letterShot",
+      a: "letterSelect",
     },
   },
 };
 const SHOT_ATTRIBUTES = [
-  { id: "attack", label: "炎", color: "#ff6b9a", glow: "#ff6b9a", damage: 1.18 },
-  { id: "mobility", label: "風", color: "#79e7ff", glow: "#79e7ff", damage: 1 },
-  { id: "control", label: "氷", color: "#baf6ff", glow: "#79e7ff", damage: 0.92 },
+  { id: "attack", label: "炎", color: "#ff6b9a", glow: "#ff6b9a", damage: 1.22, role: "高火力" },
+  { id: "mobility", label: "風", color: "#79e7ff", glow: "#79e7ff", damage: 0.98, role: "速度" },
+  { id: "control", label: "氷", color: "#baf6ff", glow: "#79e7ff", damage: 0.92, role: "弾圧低下" },
+  { id: "life", label: "光", color: "#fff2a8", glow: "#ffd36e", damage: 0.94, role: "回復" },
+  { id: "pattern", label: "闇", color: "#c99cff", glow: "#b98cff", damage: 1.04, role: "全弱点/希少" },
 ];
 const BOSS_DESIGNS = [
   {
@@ -110,8 +121,15 @@ const WORD_TAGS = [
   { type: "defense", label: "守り", words: ["たて", "まもり", "いし", "かめ", "しろ"] },
   { type: "control", label: "制御", words: ["ゆき", "あめ", "くも", "けむり", "よる", "つき"] },
   { type: "life", label: "生命", words: ["いのち", "はな", "こころ", "ひかり", "さくら", "ひまわり", "くすり"] },
-  { type: "pattern", label: "弾幕", words: ["なみ", "みず", "しずく", "そら", "ほし", "にじ", "ながれ"] },
+  { type: "pattern", label: "闇", words: ["やみよ", "よる", "かげ"] },
 ];
+const HIGH_ROLL_WORDS = new Map([
+  ["ほのお", { type: "attack", label: "炎", power: 8, title: "炎上振れ ほのお", description: "炎属性の大当たり。素直に弾威力を大きく伸ばす。" }],
+  ["はやて", { type: "mobility", label: "風", power: 8, title: "風上振れ はやて", description: "風属性の大当たり。速度と低速性能を大きく伸ばして避けやすくする。" }],
+  ["こおり", { type: "control", label: "氷", power: 8, title: "氷上振れ こおり", description: "氷属性の大当たり。敵弾スローと弾圧低下で盤面を軽くする。" }],
+  ["ひかり", { type: "life", label: "光", power: 8, title: "光上振れ ひかり", description: "光属性の大当たり。最大HPと回復で長期戦に強くなる。" }],
+  ["やみよ", { type: "pattern", label: "闇", power: 8, title: "闇上振れ やみよ", description: "闇属性の大当たり。作りにくい代わりに全ボスの弱点を突ける。" }],
+]);
 [
   "あな", "あに", "あね", "あゆ", "あり", "いか", "いき", "いけ", "いす", "いと", "いね", "うし", "うた", "うで", "うに", "うま", "うら", "えだ", "えび", "えり", "おか", "おく", "おけ", "おし", "おや",
   "かぎ", "かく", "かご", "かた", "かみ", "かり", "かわ", "きく", "きり", "きん", "くき", "くに", "くり", "けさ", "けん", "こい", "こう", "こし", "こと", "こな", "この", "こり",
@@ -122,11 +140,14 @@ const WORD_TAGS = [
   "まき", "まち", "まつ", "まど", "まり", "みせ", "みち", "みみ", "むし", "むね", "むら", "めし", "めだ", "めん", "もち", "もの",
   "やま", "やみ", "やり", "ゆび", "ゆみ", "よこ", "よし", "よみ", "よめ", "らく", "らん", "りん", "るす", "れい", "れき", "ろう", "わに", "わら"
 ].forEach((word) => LOCAL_WORDS.add(word));
+for (const word of HIGH_ROLL_WORDS.keys()) LOCAL_WORDS.add(word);
 const keys = new Set();
 let keyPreset = readKeyPreset();
 
 let game = createGame("title");
 let lastFrame = 0;
+let debugMode = false;
+let debugCommandBuffer = "";
 
 function createGame(mode = "title") {
   return {
@@ -146,11 +167,14 @@ function createGame(mode = "title") {
     hits: 0,
     riskBulletPressure: 0,
     shotAttributeIndex: 0,
+    debugInvincible: false,
+    debugBossId: null,
     scroll: 0,
     flash: 0,
     message: mode === "title" ? "ひらがなを集めて、ことばで強化しよう。" : "",
     messageTimer: 0,
     inventory: [],
+    selectedLetterIndex: null,
     upgradeBoard: {
       cells: Array(BOARD_SIZE).fill(null),
       activeIndex: null,
@@ -181,6 +205,13 @@ function createGame(mode = "title") {
       fireRateMultiplier: 1,
       spread: 0,
       bulletDamageBonus: 0,
+      attributeMods: {
+        attack: 0,
+        mobility: 0,
+        control: 0,
+        life: 0,
+        pattern: 0,
+      },
     },
     playerBullets: [],
     enemyBullets: [],
@@ -278,13 +309,8 @@ function updatePlayer(dt) {
   if (isActionPressed("shoot") && p.shotCooldown <= 0) {
     const attribute = currentShotAttribute();
     const damage = (8 + p.bulletDamageBonus) * attribute.damage;
-    game.playerBullets.push(createPlayerShot(p.x - 7, p.y - 18, 0, -720, damage, attribute));
-    game.playerBullets.push(createPlayerShot(p.x + 7, p.y - 18, 0, -720, damage, attribute));
-    if (p.spread > 0) {
-      game.playerBullets.push(createPlayerShot(p.x, p.y - 18, -120, -650, Math.max(6, damage - 2), attribute));
-      game.playerBullets.push(createPlayerShot(p.x, p.y - 18, 120, -650, Math.max(6, damage - 2), attribute));
-    }
-    p.shotCooldown = Math.max(0.045, 0.09 * p.fireRateMultiplier);
+    fireAttributeShots(attribute, damage);
+    p.shotCooldown = Math.max(attribute.cooldown || 0.045, (attribute.fireDelay || 0.09) * p.fireRateMultiplier);
   }
 }
 
@@ -296,28 +322,110 @@ function updateEffects(dt) {
 
 function updatePlayerBullets(dt) {
   for (const b of game.playerBullets) {
+    b.age = (b.age || 0) + dt;
+    if (b.motion === "wave") {
+      b.x += Math.sin(b.age * b.waveSpeed + b.wavePhase) * b.waveAmp * dt;
+    } else if (b.motion === "crosswind") {
+      b.x += Math.cos(b.age * 7 + b.wavePhase) * (b.driftAmp || 120) * dt;
+    } else if (b.motion === "seeker" && game.boss) {
+      const dx = game.boss.x - b.x;
+      b.vx += clamp(dx * 0.9, -90, 90) * dt;
+    }
     b.x += b.vx * dt;
     b.y += b.vy * dt;
   }
-  game.playerBullets = game.playerBullets.filter((b) => b.y > -20);
+  game.playerBullets = game.playerBullets.filter((b) => b.y > -30 && b.x > -40 && b.x < WIDTH + 40);
 }
 
 function currentShotAttribute() {
   return SHOT_ATTRIBUTES[game.shotAttributeIndex] || SHOT_ATTRIBUTES[0];
 }
 
-function createPlayerShot(x, y, vx, vy, damage, attribute) {
+function fireAttributeShots(attribute, damage) {
+  const p = game.player;
+  const spread = Math.min(3, p.spread);
+  const mod = attributeModLevel(attribute.id);
+  if (attribute.id === "attack") {
+    pushPlayerShot(p.x - 5, p.y - 18, 0, -760, damage * 1.16, attribute, { radius: 5, shape: "flame" });
+    pushPlayerShot(p.x + 5, p.y - 18, 0, -760, damage * 1.16, attribute, { radius: 5, shape: "flame" });
+    if (spread > 0) pushPlayerShot(p.x, p.y - 20, 0, -700, damage * 0.9, attribute, { radius: 7, shape: "flame" });
+    if (mod >= 1) pushPlayerShot(p.x, p.y - 26, 0, -610, damage * (1.05 + mod * 0.08), attribute, { radius: 8 + mod, shape: "flame" });
+    if (mod >= 3) {
+      pushPlayerShot(p.x - 18, p.y - 12, -45, -660, damage * 0.82, attribute, { radius: 5, shape: "flame" });
+      pushPlayerShot(p.x + 18, p.y - 12, 45, -660, damage * 0.82, attribute, { radius: 5, shape: "flame" });
+    }
+  } else if (attribute.id === "mobility") {
+    pushPlayerShot(p.x, p.y - 18, 0, -900, damage, attribute, { radius: 3.5, shape: "needle" });
+    pushPlayerShot(p.x - 8, p.y - 14, -150, -820, damage * 0.72, attribute, { radius: 3, shape: "needle" });
+    pushPlayerShot(p.x + 8, p.y - 14, 150, -820, damage * 0.72, attribute, { radius: 3, shape: "needle" });
+    if (spread > 0) {
+      pushPlayerShot(p.x - 13, p.y - 10, -250, -760, damage * 0.55, attribute, { radius: 3, shape: "needle" });
+      pushPlayerShot(p.x + 13, p.y - 10, 250, -760, damage * 0.55, attribute, { radius: 3, shape: "needle" });
+    }
+    if (mod >= 1) {
+      pushPlayerShot(p.x - 24, p.y - 4, 115 + mod * 12, -760, damage * 0.58, attribute, { radius: 3, shape: "needle", motion: "crosswind", driftAmp: 160 + mod * 25 });
+      pushPlayerShot(p.x + 24, p.y - 4, -115 - mod * 12, -760, damage * 0.58, attribute, { radius: 3, shape: "needle", motion: "crosswind", driftAmp: -160 - mod * 25 });
+    }
+  } else if (attribute.id === "control") {
+    pushPlayerShot(p.x, p.y - 18, 0, -560, damage * 1.28, attribute, { radius: 8, shape: "orb" });
+    if (spread > 0) {
+      pushPlayerShot(p.x - 14, p.y - 10, -70, -520, damage * 0.72, attribute, { radius: 6, shape: "orb" });
+      pushPlayerShot(p.x + 14, p.y - 10, 70, -520, damage * 0.72, attribute, { radius: 6, shape: "orb" });
+    }
+    if (mod >= 1) {
+      pushPlayerShot(p.x - 18, p.y - 18, -35, -480, damage * 0.72, attribute, { radius: 7 + mod * 0.8, shape: "orb" });
+      pushPlayerShot(p.x + 18, p.y - 18, 35, -480, damage * 0.72, attribute, { radius: 7 + mod * 0.8, shape: "orb" });
+    }
+    if (mod >= 3) pushPlayerShot(p.x, p.y - 4, 0, -390, damage * 0.8, attribute, { radius: 11, shape: "orb", motion: "seeker" });
+  } else if (attribute.id === "life") {
+    pushPlayerShot(p.x - 12, p.y - 16, -70, -680, damage * 0.82, attribute, { radius: 4.5, shape: "spark" });
+    pushPlayerShot(p.x, p.y - 20, 0, -720, damage, attribute, { radius: 4.5, shape: "spark" });
+    pushPlayerShot(p.x + 12, p.y - 16, 70, -680, damage * 0.82, attribute, { radius: 4.5, shape: "spark" });
+    if (spread > 0) pushPlayerShot(p.x, p.y - 6, 0, -610, damage * 0.65, attribute, { radius: 6, shape: "spark", motion: "seeker" });
+    if (mod >= 1) {
+      pushPlayerShot(p.x - 22, p.y - 8, -35, -620, damage * 0.58, attribute, { radius: 5.5, shape: "spark", motion: "seeker" });
+      pushPlayerShot(p.x + 22, p.y - 8, 35, -620, damage * 0.58, attribute, { radius: 5.5, shape: "spark", motion: "seeker" });
+    }
+  } else {
+    pushPlayerShot(p.x - 9, p.y - 18, -55, -640, damage, attribute, { radius: 4.5, shape: "dark", motion: "wave", waveAmp: 210, waveSpeed: 9, wavePhase: 0 });
+    pushPlayerShot(p.x + 9, p.y - 18, 55, -640, damage, attribute, { radius: 4.5, shape: "dark", motion: "wave", waveAmp: -210, waveSpeed: 9, wavePhase: Math.PI });
+    if (spread > 0) pushPlayerShot(p.x, p.y - 20, 0, -600, damage * 0.78, attribute, { radius: 7, shape: "dark", motion: "wave", waveAmp: 160, waveSpeed: 12, wavePhase: Math.PI / 2 });
+    if (mod >= 1) {
+      const amp = 240 + mod * 18;
+      pushPlayerShot(p.x - 18, p.y - 8, -25, -560, damage * 0.68, attribute, { radius: 5, shape: "dark", motion: "wave", waveAmp: amp, waveSpeed: 13, wavePhase: game.time });
+      pushPlayerShot(p.x + 18, p.y - 8, 25, -560, damage * 0.68, attribute, { radius: 5, shape: "dark", motion: "wave", waveAmp: -amp, waveSpeed: 13, wavePhase: game.time + Math.PI });
+    }
+    if (mod >= 3) pushPlayerShot(p.x, p.y - 28, 0, -520, damage * 0.82, attribute, { radius: 9, shape: "dark", motion: "wave", waveAmp: 120, waveSpeed: 18, wavePhase: game.time * 2 });
+  }
+}
+
+function attributeModLevel(type) {
+  return Math.min(5, game.player.attributeMods?.[type] || 0);
+}
+
+function pushPlayerShot(x, y, vx, vy, damage, attribute, options = {}) {
+  game.playerBullets.push(createPlayerShot(x, y, vx, vy, damage, attribute, options));
+}
+
+function createPlayerShot(x, y, vx, vy, damage, attribute, options = {}) {
   return {
     x,
     y,
     vx,
     vy,
-    radius: 4,
+    radius: options.radius || 4,
     damage,
     type: "normal",
     attribute: attribute.id,
     color: attribute.color,
     glow: attribute.glow,
+    shape: options.shape || attribute.id,
+    motion: options.motion || "straight",
+    waveAmp: options.waveAmp || 0,
+    waveSpeed: options.waveSpeed || 0,
+    wavePhase: options.wavePhase || 0,
+    driftAmp: options.driftAmp || 0,
+    age: 0,
   };
 }
 
@@ -562,17 +670,20 @@ function collectLetter(letter) {
     return;
   }
   game.inventory.push(letter.char);
+  if (game.selectedLetterIndex == null) game.selectedLetterIndex = game.inventory.length - 1;
   game.score += 25;
   burst(letter.x, letter.y, "#d6ff8f", 8);
   if (game.inventory.length === INVENTORY_LIMIT) setMessage("Rack full. Choose letters carefully.");
 }
 function fireStoredLetter() {
   if (!["phase", "final"].includes(game.mode)) return;
-  const item = game.inventory.pop();
+  const index = selectedLetterIndex();
+  const item = index == null ? null : game.inventory.splice(index, 1)[0];
   if (!item) {
     setMessage("No letter to discard");
     return;
   }
+  normalizeSelectedLetterIndex();
   const char = inventoryChar(item);
   game.playerBullets.push({
     type: "letter",
@@ -586,6 +697,36 @@ function fireStoredLetter() {
     damage: isPoweredLetter(item) ? 12 : 8,
   });
   setMessage(`Discarded ${char}`);
+}
+
+function cycleSelectedLetter() {
+  if (!game.inventory.length) {
+    game.selectedLetterIndex = null;
+    setMessage("No letters to select");
+    updateHud();
+    return;
+  }
+  game.selectedLetterIndex = game.selectedLetterIndex == null
+    ? 0
+    : (game.selectedLetterIndex + 1) % game.inventory.length;
+  const char = inventoryChar(game.inventory[game.selectedLetterIndex]);
+  setMessage(`Selected ${char}`);
+  updateHud();
+}
+
+function selectedLetterIndex() {
+  normalizeSelectedLetterIndex();
+  if (!game.inventory.length) return null;
+  return game.selectedLetterIndex == null ? game.inventory.length - 1 : game.selectedLetterIndex;
+}
+
+function normalizeSelectedLetterIndex() {
+  if (!game.inventory.length) {
+    game.selectedLetterIndex = null;
+    return;
+  }
+  if (game.selectedLetterIndex == null) return;
+  game.selectedLetterIndex = clamp(game.selectedLetterIndex, 0, game.inventory.length - 1);
 }
 
 function craftAvailableWords() {
@@ -724,7 +865,8 @@ function renderUpgradeBoard() {
       letter.type = "button";
       const used = isInventoryIndexOnBoard(index);
       const active = game.upgradeBoard.activeIndex === index;
-      letter.className = `letter-tile${active ? " active" : ""}${isPoweredLetter(item) ? " powered" : ""}`;
+      const selected = game.selectedLetterIndex === index;
+      letter.className = `letter-tile${active ? " active" : ""}${selected ? " selected" : ""}${isPoweredLetter(item) ? " powered" : ""}`;
       letter.textContent = inventoryChar(item);
       letter.disabled = game.upgradeBoard.busy || used;
       letter.addEventListener("click", () => {
@@ -743,7 +885,7 @@ function renderUpgradeBoard() {
   } else {
     const empty = document.createElement("span");
     empty.className = "board-note";
-    empty.textContent = "No letters collected. Confirm creates a weak WILD upgrade.";
+    empty.textContent = "No letters collected. You need a valid 3-letter word for an upgrade.";
     rack.append(empty);
   }
   panel.append(rack);
@@ -820,7 +962,12 @@ async function forgeSelectedWord() {
   if (game.mode !== "upgrade" || game.upgradeBoard.busy) return;
   if (game.upgradeBoard.choosing) return;
   const validUpgrades = game.upgradeBoard.pendingUpgrades;
-  const seedUpgrade = validUpgrades[validUpgrades.length - 1] || createFallbackUpgrade("wild");
+  if (!validUpgrades.length) {
+    game.upgradeBoard.message = "Make a valid 3-letter word before choosing an upgrade.";
+    renderUpgradeBoard();
+    return;
+  }
+  const seedUpgrade = validUpgrades[validUpgrades.length - 1];
   game.upgradeBoard.choiceOptions = buildUpgradeChoices(seedUpgrade);
   game.upgradeBoard.choosing = true;
   game.upgradeBoard.message = "Choose one upgrade reward.";
@@ -985,6 +1132,7 @@ function amplifyUpgrade(upgrade, multiplier) {
 }
 
 function buildUpgradeChoices(seedUpgrade) {
+  if (seedUpgrade.highRoll) return buildHighRollChoices(seedUpgrade);
   const base = normalizeUpgradeChoice(seedUpgrade, "安定強化", "作った単語をそのまま伸ばす。");
   const risky = normalizeUpgradeChoice(
     {
@@ -1011,6 +1159,86 @@ function buildUpgradeChoices(seedUpgrade) {
     "次に来る夜ボスの弱点へ寄せる。",
   );
   return [base, risky, counter];
+}
+
+function buildHighRollChoices(seedUpgrade) {
+  const awakened = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: seedUpgrade.power + 2,
+      title: `${seedUpgrade.title} 覚醒`,
+      description: `${seedUpgrade.description} さらに覚醒して効果上昇。`,
+    },
+    "大当たり覚醒",
+    "3文字レア単語。ノーリスクでかなり強い。",
+  );
+  const signature = highRollSignatureChoice(seedUpgrade);
+  const overdrive = normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: seedUpgrade.power + 5,
+      title: `${seedUpgrade.title} 暴走`,
+      description: `${seedUpgrade.description} 属性の尖りを暴走させて破格の効果。`,
+    },
+    "暴走上振れ",
+    "元の属性を保ったまま破格に伸ばす。代わりに次フェーズの弾圧が跳ねる。",
+    { bulletPressure: 0.18, label: "次フェーズ弾圧 +18%" },
+  );
+  return [awakened, signature, overdrive];
+}
+
+function highRollSignatureChoice(seedUpgrade) {
+  const signatures = {
+    attack: {
+      name: "炎核点火",
+      title: `炎核点火 ${seedUpgrade.word}`,
+      description: "炎の大当たり。弾威力を一点突破で伸ばし、ボス削りを最優先にする。",
+      detail: "火力特化。弱点一致ボスを短時間で倒すための選択。",
+      power: seedUpgrade.power + 4,
+    },
+    mobility: {
+      name: "風読み",
+      title: `風読み ${seedUpgrade.word}`,
+      description: "風の大当たり。移動速度、低速性能、無敵時間をまとめて伸ばす。",
+      detail: "回避特化。難しい弾幕を操作精度で抜けるための選択。",
+      power: seedUpgrade.power + 3,
+    },
+    control: {
+      name: "氷結支配",
+      title: `氷結支配 ${seedUpgrade.word}`,
+      description: "氷の大当たり。敵弾スローを強め、次フェーズの弾圧リスクも下げる。",
+      detail: "盤面制御特化。リスクを抑えて安全に次へ進む選択。",
+      power: seedUpgrade.power + 4,
+    },
+    life: {
+      name: "光環再生",
+      title: `光環再生 ${seedUpgrade.word}`,
+      description: "光の大当たり。最大HPと回復量を伸ばし、長期戦の許容量を増やす。",
+      detail: "生存特化。被弾を許容してボスまで粘るための選択。",
+      power: seedUpgrade.power + 3,
+    },
+    pattern: {
+      name: "闇侵食",
+      title: `闇侵食 ${seedUpgrade.word}`,
+      description: "闇の大当たり。全ボス弱点を突く万能性を保ったまま拡散を増やす。",
+      detail: "万能弱点特化。作りにくい闇だけが選べるボス対策。",
+      power: seedUpgrade.power + 4,
+      risk: { bulletPressure: 0.1, label: "次フェーズ弾圧 +10%" },
+    },
+  };
+  const signature = signatures[seedUpgrade.type] || signatures.life;
+  return normalizeUpgradeChoice(
+    {
+      ...seedUpgrade,
+      power: signature.power,
+      title: signature.title,
+      description: signature.description,
+      highRoll: true,
+    },
+    signature.name,
+    signature.detail,
+    signature.risk || null,
+  );
 }
 
 function normalizeUpgradeChoice(upgrade, name, detail, risk = null) {
@@ -1040,7 +1268,7 @@ function upgradeLabelForType(type) {
   if (type === "defense") return "守り";
   if (type === "control") return "制御";
   if (type === "life") return "生命";
-  return "弾幕";
+  return "闇";
 }
 
 function attributeLabelForType(type) {
@@ -1165,6 +1393,7 @@ function pushLineWord(words, cells, direction) {
 function consumePlacedLetters() {
   const selected = getPlacedCells().map((cell) => cell.sourceIndex).sort((a, b) => b - a);
   for (const index of selected) game.inventory.splice(index, 1);
+  normalizeSelectedLetterIndex();
   game.upgradeBoard.cells = Array(BOARD_SIZE).fill(null);
   game.upgradeBoard.activeIndex = null;
 }
@@ -1181,6 +1410,7 @@ async function analyzeWord(word) {
   } catch {
     // Fall back to the in-browser list when the local API is unavailable.
   }
+  if (HIGH_ROLL_WORDS.has(normalized)) return createHighRollUpgrade(normalized);
   if (!LOCAL_WORDS.has(normalized)) return { valid: false, word: normalized };
   return createWordUpgrade(normalized);
 }
@@ -1205,9 +1435,10 @@ function createWordUpgrade(word) {
 }
 
 function inferWordTag(word) {
-  if (/[らりるれろ]/.test(word)) return { type: "pattern", label: "弾幕" };
+  if (/[やみかげ]/.test(word) && word.length >= 3) return { type: "pattern", label: "闇" };
   if (/[かきくけこがぎぐげご]/.test(word)) return { type: "attack", label: "攻撃" };
   if (/[まみむめも]/.test(word)) return { type: "defense", label: "守り" };
+  if (/[らりるれろ]/.test(word)) return { type: "control", label: "制御" };
   if (word.length <= 2) return { type: "mobility", label: "移動" };
   return { type: "life", label: "生命" };
 }
@@ -1216,29 +1447,18 @@ function rareLetterBonus(word) {
   return [...word].filter((char) => "ゃゅょっん".includes(char)).length;
 }
 
-function createFallbackUpgrade(word) {
-  return {
-    valid: true,
-    word,
-    type: "pattern",
-    label: "Pattern",
-    power: 1,
-    title: "おまかせ 弾幕",
-    description: "小さな拡散ショット。",
-  };
-}
-
 function describeDynamicUpgrade(type, power) {
-  if (type === "attack") return `弾の威力 +${power}`;
-  if (type === "mobility") return "移動速度アップ。";
-  if (type === "defense") return "HP回復と短い無敵。";
-  if (type === "control") return "敵弾スローを付与。";
-  if (type === "life") return "最大HPアップと回復。";
-  return "拡散ショットを追加。";
+  if (type === "attack") return `炎: 弾威力 +${power}。強化で重い火柱弾が増える。`;
+  if (type === "mobility") return "風: 移動速度と低速性能アップ。強化で横風の針弾が増える。";
+  if (type === "defense") return "守り: HP回復と短い無敵。立て直し用。";
+  if (type === "control") return "氷: 敵弾スローと弾圧低下。強化で大きい制圧弾が増える。";
+  if (type === "life") return "光: 最大HPアップと回復。強化で追尾する光弾が増える。";
+  return "闇: 全ボス弱点を突ける。強化で波打つ闇弾が増えるが弾圧リスクも上がる。";
 }
 
 function applyDynamicUpgrade(upgrade) {
   const p = game.player;
+  increaseAttributeMod(upgrade.type, upgrade.highRoll ? 2 : 1);
   if (upgrade.type === "attack") {
     p.bulletDamageBonus += upgrade.power;
   } else if (upgrade.type === "mobility") {
@@ -1250,16 +1470,38 @@ function applyDynamicUpgrade(upgrade) {
     p.invuln += 1 + upgrade.power * 0.25;
   } else if (upgrade.type === "control") {
     game.startingSlow += 1.3 + upgrade.power * 0.45;
+    game.riskBulletPressure = Math.max(0, (game.riskBulletPressure || 0) - 0.03 * upgrade.power);
   } else if (upgrade.type === "life") {
     p.maxHp += 1;
     p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(upgrade.power / 3));
   } else {
     p.spread += 1;
+    game.riskBulletPressure = (game.riskBulletPressure || 0) + 0.03 + upgrade.power * 0.01;
   }
   game.upgrades.push(upgrade.title);
   addBuffIcon(upgrade);
   game.score += 120 + upgrade.word.length * 90 + upgrade.power * 60;
   setMessage(upgrade.description);
+}
+
+function increaseAttributeMod(type, amount) {
+  if (!game.player.attributeMods || !Object.hasOwn(game.player.attributeMods, type)) return;
+  game.player.attributeMods[type] = Math.min(5, game.player.attributeMods[type] + amount);
+}
+
+function createHighRollUpgrade(word) {
+  const highRoll = HIGH_ROLL_WORDS.get(word);
+  return {
+    valid: true,
+    word,
+    type: highRoll.type,
+    label: highRoll.label,
+    power: highRoll.power,
+    title: highRoll.title,
+    description: highRoll.description,
+    highRoll: true,
+    recognized: [word, highRoll.label],
+  };
 }
 
 function addBuffIcon(upgrade) {
@@ -1311,7 +1553,7 @@ function startFinalBattle() {
   game.enemyBullets.length = 0;
   game.playerBullets.length = 0;
   const maxHp = Math.round(420 + game.phase * 70 + game.upgrades.length * 90);
-  const design = selectBossDesign(game.phase);
+  const design = debugBossDesign() || selectBossDesign(game.phase);
   game.boss = {
     x: WIDTH / 2,
     y: -70,
@@ -1332,8 +1574,14 @@ function selectBossDesign(phase) {
   return BOSS_DESIGNS[bossIndex % BOSS_DESIGNS.length];
 }
 
+function debugBossDesign() {
+  if (!debugMode || !game.debugBossId) return null;
+  return BOSS_DESIGNS.find((design) => design.id === game.debugBossId) || null;
+}
+
 function bossAttributeMultiplier(boss, bullet) {
   if (bullet.type === "letter") return 0.65;
+  if (bullet.attribute === "pattern") return 1.52;
   if (bullet.attribute === boss.design.weak) return 1.65;
   if (bullet.attribute === boss.design.resist) return 0.62;
   return 1;
@@ -1366,7 +1614,7 @@ function checkCollisions() {
           setMessage("文字シールドにはKの文字弾が効く。");
           break;
         }
-        enemy.hp -= enemy.letterShield ? 1 : bullet.damage;
+        enemy.hp -= enemy.letterShield ? enemy.hp : bullet.damage;
         consumed = true;
         burst(bullet.x, bullet.y, enemy.letterShield ? "#d6ff8f" : "#79e7ff", enemy.letterShield ? 8 : 4);
         if (enemy.hp <= 0) destroyEnemy(enemy);
@@ -1423,12 +1671,17 @@ function rewardLetterShield(enemy) {
     gained.push(char);
   }
   while (game.inventory.length > INVENTORY_LIMIT) game.inventory.shift();
+  normalizeSelectedLetterIndex();
   game.score += 180 * count;
   setMessage(`Letter shield broken: powered letters ${gained.join(" ")} gained.`);
   burst(enemy.x, enemy.y, "#eef8ff", 10);
 }
 function damagePlayer() {
   const p = game.player;
+  if (debugMode && game.debugInvincible) {
+    p.invuln = 0.5;
+    return;
+  }
   p.hp -= 1;
   p.invuln = 1.4;
   game.hits += 1;
@@ -1582,11 +1835,44 @@ function drawPlayerBullets() {
       ctx.shadowColor = b.glow || "#79e7ff";
       ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.roundRect(b.x - 3, b.y - 12, 6, 18, 3);
-      ctx.fill();
+      drawPlayerBulletShape(b);
     }
   }
   ctx.restore();
+}
+
+function drawPlayerBulletShape(b) {
+  if (b.shape === "flame") {
+    ctx.moveTo(b.x, b.y - 15);
+    ctx.quadraticCurveTo(b.x + 8, b.y - 3, b.x + 2, b.y + 10);
+    ctx.quadraticCurveTo(b.x - 9, b.y + 1, b.x, b.y - 15);
+    ctx.fill();
+  } else if (b.shape === "needle") {
+    ctx.roundRect(b.x - 2, b.y - 16, 4, 28, 2);
+    ctx.fill();
+  } else if (b.shape === "orb") {
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(238, 248, 255, 0.7)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else if (b.shape === "spark") {
+    ctx.moveTo(b.x, b.y - 13);
+    ctx.lineTo(b.x + 6, b.y - 2);
+    ctx.lineTo(b.x + 2, b.y + 11);
+    ctx.lineTo(b.x - 6, b.y + 1);
+    ctx.closePath();
+    ctx.fill();
+  } else if (b.shape === "dark") {
+    ctx.ellipse(b.x, b.y, b.radius * 1.25, b.radius * 2.1, Math.sin(b.age * 8) * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 242, 168, 0.45)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else {
+    ctx.roundRect(b.x - 3, b.y - 12, 6, 18, 3);
+    ctx.fill();
+  }
 }
 
 function drawEnemies() {
@@ -1792,14 +2078,19 @@ function updateHud() {
   }
   stateEl.textContent = game.stagesCleared;
   const risk = inventoryRisk();
-  const riskText = risk > 6 ? "危険" : risk > 0 ? "重い" : "余裕";
+  const riskText = risk > 6 ? "danger" : risk > 0 ? "heavy" : "light";
+  const rackText = game.inventory.map((item, index) => {
+    const label = inventoryLabel(item);
+    return index === selectedLetterIndex() ? `[${label}]` : label;
+  }).join(" ");
   letterRackEl.textContent = game.inventory.length
-    ? `${game.inventory.map(inventoryLabel).join(" ")} (${game.inventory.length}/${INVENTORY_LIMIT} ${riskText})`
+    ? `${rackText} (${game.inventory.length}/${INVENTORY_LIMIT} ${riskText})`
     : "collect letters";
   const activeEffects = Object.entries(game.effects)
     .filter(([, time]) => time > 0)
     .map(([name, time]) => `${name} ${Math.ceil(time)}s`);
-  const attributeText = `属性: ${currentShotAttribute().label}`;
+  const attribute = currentShotAttribute();
+  const attributeText = `属性: ${attribute.label} (${attribute.role})`;
   const upgrades = game.upgrades.length ? `Upgrades: ${game.upgrades.join(" / ")}` : "";
   effectsEl.textContent = [attributeText, activeEffects.join(" / "), upgrades].filter(Boolean).join(" | ");
   updateBuffTray();
@@ -1844,6 +2135,74 @@ function timedBuffDescription(type) {
 function setMessage(message) {
   game.message = message;
   game.messageTimer = 2.4;
+}
+
+function toggleDebugMode() {
+  debugMode = !debugMode;
+  if (debugPanelEl) debugPanelEl.hidden = !debugMode;
+  if (!debugMode) game.debugInvincible = false;
+  syncDebugPanel();
+  setMessage(debugMode ? "Debug mode enabled" : "Debug mode disabled");
+  updateHud();
+}
+
+function syncDebugPanel() {
+  if (!debugPanelEl) return;
+  if (debugInvincibleEl) debugInvincibleEl.checked = Boolean(game.debugInvincible);
+  if (debugBossSelectEl && !debugBossSelectEl.options.length) {
+    for (const design of BOSS_DESIGNS) {
+      const option = document.createElement("option");
+      option.value = design.id;
+      option.textContent = `${design.name} (${bossWeakLabel({ design })})`;
+      debugBossSelectEl.append(option);
+    }
+  }
+  if (debugBossSelectEl) debugBossSelectEl.value = game.debugBossId || BOSS_DESIGNS[0].id;
+}
+
+function handleDebugCommandKey(key) {
+  if (key.length !== 1 || !/[a-z]/.test(key)) return;
+  debugCommandBuffer = `${debugCommandBuffer}${key}`.slice(-5);
+  if (debugCommandBuffer === "debug") {
+    debugCommandBuffer = "";
+    toggleDebugMode();
+  }
+}
+
+function grantDebugLetters() {
+  if (!debugMode || !debugLettersEl) return;
+  const letters = normalizeKana(debugLettersEl.value || "").slice(0, INVENTORY_LIMIT);
+  if (!letters) return;
+  for (const char of letters) {
+    if (game.inventory.length >= INVENTORY_LIMIT) game.inventory.shift();
+    game.inventory.push(char);
+  }
+  normalizeSelectedLetterIndex();
+  if (game.selectedLetterIndex == null && game.inventory.length) game.selectedLetterIndex = 0;
+  setMessage(`Debug letters: ${letters}`);
+  updateHud();
+}
+
+function debugSkipPhase() {
+  if (!debugMode) return;
+  if (game.mode === "upgrade") {
+    advanceAfterUpgrade();
+    return;
+  }
+  if (["phase", "final", "pause", "title"].includes(game.mode)) {
+    game.mode = "phase";
+    overlay.hidden = true;
+    enterUpgrade();
+  }
+}
+
+function debugStartBoss() {
+  if (!debugMode) return;
+  game.debugBossId = debugBossSelectEl?.value || BOSS_DESIGNS[0].id;
+  game.phase = Math.max(3, Math.ceil(game.phase / 3) * 3);
+  overlay.hidden = true;
+  startFinalBattle();
+  updateHud();
 }
 
 async function submitRanking() {
@@ -1983,13 +2342,25 @@ startButton.addEventListener("click", handleStartButton);
 keyPresetEl?.addEventListener("change", () => {
   setKeyPreset(keyPresetEl.value);
 });
+debugInvincibleEl?.addEventListener("change", () => {
+  game.debugInvincible = Boolean(debugInvincibleEl.checked);
+  setMessage(game.debugInvincible ? "Debug invincible on" : "Debug invincible off");
+});
+debugGrantLettersEl?.addEventListener("click", grantDebugLetters);
+debugSkipPhaseEl?.addEventListener("click", debugSkipPhase);
+debugBossSelectEl?.addEventListener("change", () => {
+  game.debugBossId = debugBossSelectEl.value;
+});
+debugStartBossEl?.addEventListener("click", debugStartBoss);
 
 window.addEventListener("keydown", (event) => {
   const key = normalizeInputKey(event);
+  handleDebugCommandKey(key);
   if (shouldPreventKey(key)) event.preventDefault();
   if (key === "enter" && !["phase", "final"].includes(game.mode)) handleStartButton();
   if (key === "escape") togglePause();
   if (key === " " && !event.repeat) cycleShotAttribute();
+  if (keyAction(key) === "letterSelect" && !event.repeat) cycleSelectedLetter();
   if (keyAction(key) === "letterShot" && !event.repeat) fireStoredLetter();
   keys.add(key);
 });
@@ -2000,6 +2371,7 @@ window.addEventListener("keyup", (event) => {
 });
 
 updateKeyPresetUi();
+syncDebugPanel();
 updateHud();
 loadRankings();
 draw();

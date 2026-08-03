@@ -9,6 +9,7 @@ const root = resolve(".");
 const rankingFile = join(root, ".logs", "rankings.json");
 const unknownWordsFile = join(root, ".logs", "unknown-words.json");
 const wordsFile = join(root, "data", "words-ja.json");
+const wordUpgradeSheetFile = join(root, "data", "word-upgrades.csv");
 const kuromoji = require("kuromoji");
 const kuromojiDictPath = join(dirname(require.resolve("kuromoji/package.json")), "dict");
 const conversionForms = new Map([
@@ -211,7 +212,9 @@ async function handleWordValidation(request, response, url) {
     }
   }
 
-  const power = Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
+  const power = Number.isFinite(entry.power)
+    ? entry.power
+    : Math.max(1, Math.min(5, [...word].length - 1 + rareLetterBonus(word)));
   sendJson(response, {
     valid: true,
     word,
@@ -223,26 +226,97 @@ async function handleWordValidation(request, response, url) {
       type: entry.type,
       label: entry.label,
       power,
-      title: `${word} ${entry.label}`,
-      description: describeUpgrade(entry.type, power),
+      title: entry.title || `${word} ${entry.label}`,
+      description: entry.description || describeUpgrade(entry.type, power),
+      highRoll: Boolean(entry.highRoll),
       recognized: entry.recognized || [word],
     },
   });
 }
 
 function readWordMap() {
+  const entries = [];
   try {
     const data = JSON.parse(readFileSync(wordsFile, "utf8"));
-    const entries = (data.words || []).filter((entry) => !isUnsafeStoredWord(entry));
-    return new Map(entries.map((entry) => [normalizeKana(entry.word), entry]));
+    entries.push(...(data.words || []).filter((entry) => !isUnsafeStoredWord(entry)));
   } catch {
-    return new Map();
+    // Missing local dictionary is fine; the editable sheet can still drive upgrades.
   }
+  entries.push(...readWordUpgradeSheet());
+  return new Map(entries.map((entry) => [normalizeKana(entry.word), entry]));
 }
 
 function isUnsafeStoredWord(entry) {
   const word = normalizeKana(entry?.word);
   return entry?.source === "wiktionary" && [...word].length < 4;
+}
+
+function readWordUpgradeSheet() {
+  if (!existsSync(wordUpgradeSheetFile)) return [];
+  const text = readFileSync(wordUpgradeSheetFile, "utf8").replace(/^\uFEFF/, "");
+  const rows = parseCsv(text).filter((row) => row.some((cell) => cell.trim()));
+  const [headers, ...records] = rows;
+  if (!headers) return [];
+  const keys = headers.map((header) => header.trim());
+  return records
+    .map((row) => Object.fromEntries(keys.map((key, index) => [key, row[index]?.trim() || ""])))
+    .filter((row) => row.word && row.type)
+    .map((row) => ({
+      word: normalizeKana(row.word),
+      type: row.type,
+      label: row.label || upgradeLabelFromType(row.type),
+      power: row.power ? Number(row.power) : undefined,
+      title: row.title || undefined,
+      description: row.description || undefined,
+      highRoll: /^true$/i.test(row.highRoll),
+      source: row.source || "sheet",
+      recognized: [normalizeKana(row.word)],
+    }));
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n") {
+      row.push(cell.replace(/\r$/, ""));
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  row.push(cell.replace(/\r$/, ""));
+  rows.push(row);
+  return rows;
+}
+
+function upgradeLabelFromType(type) {
+  if (type === "attack") return "攻撃";
+  if (type === "mobility") return "移動";
+  if (type === "defense") return "守り";
+  if (type === "control") return "制御";
+  if (type === "life") return "生命";
+  return "闇";
 }
 
 async function fetchKuromojiWordEntry(word) {
@@ -367,12 +441,13 @@ function readWordData() {
 }
 
 function inferWordEntry(word) {
+  if (/[闇影夜]/.test(word) && word.length >= 3) return { type: "pattern", label: "闇" };
   if (word.length <= 2) return { type: "mobility", label: "移動" };
   if (/[火炎鬼刀刃雷焼肉]/.test(word)) return { type: "attack", label: "攻撃" };
   if (/[守盾石城亀]/.test(word)) return { type: "defense", label: "守り" };
   if (/[雪雨月夜雲煙]/.test(word)) return { type: "control", label: "制御" };
   if (/[花心命光薬食卵]/.test(word)) return { type: "life", label: "生命" };
-  return { type: "pattern", label: "弾幕" };
+  return { type: "life", label: "生命" };
 }
 
 function normalizeKana(word) {
@@ -388,12 +463,12 @@ function rareLetterBonus(word) {
 }
 
 function describeUpgrade(type, power) {
-  if (type === "attack") return `弾の威力 +${power}`;
-  if (type === "mobility") return "移動速度アップ。";
+  if (type === "attack") return `炎: 弾威力 +${power}。強化で重い火柱弾が増える。`;
+  if (type === "mobility") return "風: 移動速度と低速性能アップ。強化で横風の針弾が増える。";
   if (type === "defense") return "HP回復と短い無敵。";
-  if (type === "control") return "敵弾スローを付与。";
-  if (type === "life") return "最大HPアップと回復。";
-  return "拡散ショットを追加。";
+  if (type === "control") return "氷: 敵弾スローと弾圧低下。強化で大きい制圧弾が増える。";
+  if (type === "life") return "光: 最大HPアップと回復。強化で追尾する光弾が増える。";
+  return "闇: 全ボス弱点を突ける。強化で波打つ闇弾が増えるが弾圧リスクも上がる。";
 }
 
 function rankEntries(entries) {

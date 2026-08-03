@@ -57,8 +57,8 @@
     },
     {
       "word": "うた",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "life",
+      "label": "生命"
     },
     {
       "word": "うどん",
@@ -67,8 +67,8 @@
     },
     {
       "word": "うみ",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "control",
+      "label": "制御"
     },
     {
       "word": "えき",
@@ -77,8 +77,8 @@
     },
     {
       "word": "おと",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "mobility",
+      "label": "移動"
     },
     {
       "word": "おに",
@@ -89,6 +89,11 @@
       "word": "おにく",
       "type": "life",
       "label": "生命"
+    },
+    {
+      "word": "かげ",
+      "type": "pattern",
+      "label": "闇"
     },
     {
       "word": "かさ",
@@ -132,8 +137,8 @@
     },
     {
       "word": "けいおん",
-      "type": "pattern",
-      "label": "弾幕",
+      "type": "mobility",
+      "label": "移動",
       "source": "wiktionary"
     },
     {
@@ -143,8 +148,8 @@
     },
     {
       "word": "さかな",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "mobility",
+      "label": "移動"
     },
     {
       "word": "さくら",
@@ -173,13 +178,13 @@
     },
     {
       "word": "そら",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "mobility",
+      "label": "移動"
     },
     {
       "word": "たこ",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "defense",
+      "label": "守り"
     },
     {
       "word": "つき",
@@ -203,8 +208,8 @@
     },
     {
       "word": "なみ",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "control",
+      "label": "制御"
     },
     {
       "word": "にく",
@@ -213,8 +218,8 @@
     },
     {
       "word": "にじ",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "life",
+      "label": "生命"
     },
     {
       "word": "ねこ",
@@ -243,8 +248,8 @@
     },
     {
       "word": "ほし",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "life",
+      "label": "生命"
     },
     {
       "word": "ほのお",
@@ -258,8 +263,8 @@
     },
     {
       "word": "みず",
-      "type": "pattern",
-      "label": "弾幕"
+      "type": "control",
+      "label": "制御"
     },
     {
       "word": "やいば",
@@ -280,6 +285,12 @@
       "word": "やさい",
       "type": "life",
       "label": "生命"
+    },
+    {
+      "word": "やみよ",
+      "type": "pattern",
+      "label": "闇",
+      "source": "high-roll"
     },
     {
       "word": "ゆき",
